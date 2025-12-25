@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbat Monitori - EduDocs</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: #0f172a;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 1rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .monitor-header {
+            text-align: center;
+            padding: 1rem;
+            border-bottom: 2px solid #1e293b;
+        }
+
+        .monitor-main {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            flex: 1;
+            padding-top: 1rem;
+        }
+
+        .current-panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: #1e293b;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid #334155;
+            transition: all 0.3s;
+        }
+
+        .panel.calling {
+            background: #1e3a8a;
+            border-color: #3b82f6;
+            transform: scale(1.02);
+            box-shadow: 0 0 30px #2563eb;
+        }
+
+        .window-name {
+            font-size: 2rem;
+            color: #94a3b8;
+        }
+
+        .ticket-num {
+            font-size: 6rem;
+            color: #3b82f6;
+            font-weight: bold;
+            margin: 1rem 0;
+        }
+
+        .next-queue {
+            background: #020617;
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid #1e293b;
+        }
+
+        .next-queue h2 {
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 0.5rem;
+        }
+
+        .next-list {
+            list-style: none;
+            padding: 0;
+            font-size: 2.5rem;
+        }
+
+        .next-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #0f172a;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="monitor-header">
+        <h1>REGISTRATOR OFISI - NAVBAT TIZIMI</h1>
+    </div>
+
+    <div class="monitor-main">
+        <div class="current-panels" id="window-containers">
+            <!-- Windows will be injected here -->
+        </div>
+
+        <div class="next-queue">
+            <h2>KEYINGI NAVBAT:</h2>
+            <ul class="next-list" id="next-list">
+                <!-- Next tickets will be here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Hidden audio for alert -->
+    <button id="play-btn" style="display:none">Play</button>
+
+    <script>
+        let lastState = "";
+
+        async function updateMonitor() {
+            try {
+                const res = await fetch('/api/data?t=' + new Date().getTime());
+                const data = await res.json();
+
+                const currentState = JSON.stringify({
+                    counters: data.queue_counters,
+                    waiting: data.queue_tickets.filter(t => t.status === 'waiting')
+                });
+
+                if (currentState !== lastState) {
+                    render(data);
+                    if (lastState !== "" && isNewCall(data)) {
+                        notify();
+                    }
+                    lastState = currentState;
+                }
+            } catch (e) { console.error("Update failed", e); }
+        }
+
+        function isNewCall(data) {
+            // Check if any current_ticket changed from null or to a new id
+            return true; // Simplified for now
+        }
+
+        function notify() {
+            // Visual pulse
+            document.body.style.background = "#1e40af";
+            setTimeout(() => document.body.style.background = "#0f172a", 500);
+        }
+
+        function render(data) {
+            const winCont = document.getElementById('window-containers');
+            winCont.innerHTML = "";
+            data.queue_counters.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'panel';
+                div.innerHTML = `
+                    <div class="window-name">${w.name}</div>
+                    <div class="ticket-num">${w.current_ticket || '---'}</div>
+                `;
+                winCont.appendChild(div);
+            });
+
+            const nextList = document.getElementById('next-list');
+            nextList.innerHTML = "";
+            data.queue_tickets
+                .filter(t => t.status === 'waiting')
+                .slice(0, 5)
+                .forEach(t => {
+                    const li = document.createElement('li');
+                    li.innerText = t.number;
+                    nextList.appendChild(li);
+                });
+        }
+
+        setInterval(updateMonitor, 2000);
+        updateMonitor();
+    </script>
+</body>
+
+</html>

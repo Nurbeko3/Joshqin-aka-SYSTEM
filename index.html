@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduDocs - TEST UPDATE</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Login Overlay -->
+        <div id="loginOverlay" class="login-overlay">
+            <div class="login-card">
+                <div class="login-header">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h2>EduDocs Tizimi</h2>
+                    <p>Kirish uchun ma'lumotlarni kiriting</p>
+                </div>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Login</label>
+                        <input type="text" id="loginUser" placeholder="admin yoki Talaba ID" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Parol</label>
+                        <input type="password" id="loginPass" placeholder="•••• yoki Pasport" required>
+                    </div>
+                    <button type="submit" class="btn-primary full-width">Kirish</button>
+                    <p id="loginError" style="color: red; margin-top: 10px; display: none;">Login yoki parol xato!</p>
+                </form>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h2>EduDocs</h2>
+            </div>
+            <nav>
+                <button id="nav-dashboard-toggle" class="nav-btn" onclick="toggleDashboardMenu()">
+                    <i class="fas fa-home"></i> Bosh Sahifa <i class="fas fa-chevron-down"
+                        style="font-size: 10px; margin-left: auto;"></i>
+                </button>
+                <div id="dashboard-submenu"
+                    style="display: none; padding-left: 15px; background-color: rgba(0,0,0,0.1);">
+                    <button id="nav-dashboard" class="nav-btn" onclick="switchTab('dashboard')"
+                        style="font-size: 13px;">
+                        <i class="fas fa-chart-pie"></i> Statistika
+                    </button>
+                    <button id="nav-specialties" class="nav-btn" onclick="switchTab('specialties')"
+                        style="font-size: 13px;">
+                        <i class="fas fa-layer-group"></i> Yo'nalishlar
+                    </button>
+                    <button id="nav-users" class="nav-btn" onclick="switchTab('users')" style="font-size: 13px;">
+                        <i class="fas fa-users-cog"></i> Foydalanuvchilar
+                    </button>
+                    <button id="nav-gifted" class="nav-btn" onclick="switchTab('gifted')" style="font-size: 13px;">
+                        <i class="fas fa-star"></i> Iqtidorli Bolalar
+                    </button>
+                </div>
+                <button id="nav-student" class="nav-btn" onclick="switchTab('student')" style="display: none;">
+                    <i class="fas fa-user-graduate"></i> Mening Hujjatlarim
+                </button>
+                <!-- Student Gifted Portal Sidebar with Submenu -->
+                <button id="nav-student-gifted-toggle" class="nav-btn" onclick="toggleStudentGiftedMenu()"
+                    style="display: none;">
+                    <i class="fas fa-award"></i> Iqtidorli Bolalar <i class="fas fa-chevron-down"
+                        style="font-size: 10px; margin-left: auto;"></i>
+                </button>
+                <div id="student-gifted-submenu"
+                    style="display: none; padding-left: 15px; background-color: rgba(0,0,0,0.1);">
+                    <button id="nav-student-contests" class="nav-btn" onclick="switchTab('student-gifted-contests')"
+                        style="font-size: 13px;">
+                        <i class="fas fa-trophy"></i> Tanlovlar
+                    </button>
+                    <button id="nav-student-apps" class="nav-btn" onclick="switchTab('student-gifted-apps')"
+                        style="font-size: 13px;">
+                        <i class="fas fa-history"></i> Mening Arizalarim
+                    </button>
+                </div>
+                <button id="nav-list" class="nav-btn" onclick="switchTab('list')">
+                    <i class="fas fa-list"></i> Ro'yxat
+                </button>
+                <button id="nav-updates" class="nav-btn" onclick="switchTab('updates')" style="display: none;">
+                    <i class="fas fa-bell"></i> Yangilanishlar <span id="updatesCount" class="count-badge"
+                        style="display:none;">0</span>
+                </button>
+                <button id="nav-analysis" class="nav-btn" onclick="switchTab('analysis')">
+                    <i class="fas fa-chart-line"></i> Tahlil va To'lov
+                </button>
+                <button id="nav-settings" class="nav-btn" onclick="switchTab('settings')">
+                    <i class="fas fa-cog"></i> Sozlamalar
+                </button>
+                <button id="nav-schedules-toggle" class="nav-btn" onclick="toggleSchedulesMenu()">
+                    <i class="fas fa-calendar-alt"></i> Jadvallar <i class="fas fa-chevron-down"
+                        style="font-size: 10px; margin-left: auto;"></i>
+                </button>
+                <div id="schedules-submenu"
+                    style="display: none; padding-left: 15px; background-color: rgba(0,0,0,0.1);">
+                    <button id="nav-exam" class="nav-btn" onclick="switchTab('exam')">
+                        <i class="fas fa-clipboard-check"></i> Imtihon Jadvali
+                    </button>
+                    <button id="nav-lesson" class="nav-btn" onclick="switchTab('lesson')">
+                        <i class="fas fa-chalkboard-teacher"></i> Dars Jadvali
+                    </button>
+                </div>
+                <!-- Queue System -->
+                <button id="nav-queue-toggle" class="nav-btn" onclick="toggleQueueMenu()">
+                    <i class="fas fa-users-rectangle"></i> Navbat Tizimi <i class="fas fa-chevron-down"
+                        style="font-size: 10px; margin-left: auto;"></i>
+                </button>
+                <div id="queue-submenu" style="display: none; padding-left: 15px; background-color: rgba(0,0,0,0.1);">
+                    <a href="navbat-olish.html" target="_blank" class="nav-btn" id="nav-queue-kiosk"
+                        style="font-size: 13px; text-decoration: none; color: inherit;">
+                        <i class="fas fa-ticket-alt"></i> Kiosk (Chipta olish)
+                    </a>
+                    <a href="navbat-monitor.html" target="_blank" class="nav-btn" id="nav-queue-monitor"
+                        style="font-size: 13px; text-decoration: none; color: inherit;">
+                        <i class="fas fa-desktop"></i> Monitor (Kutish zali)
+                    </a>
+                    <a href="navbat-admin.html" target="_blank" class="nav-btn" id="nav-queue-admin"
+                        style="font-size: 13px; text-decoration: none; color: inherit;">
+                        <i class="fas fa-user-tie"></i> Admin (Xodim paneli)
+                    </a>
+                </div>
+            </nav>
+            <input type="file" id="excelInput" hidden accept=".xlsx, .xls" onchange="importExcel(this)">
+            <div id="nav-backup" class="sidebar-footer"
+                style="margin-top: auto; padding-top: 20px; border-top: 1px solid #334155;">
+                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Baza Boshqaruvi</p>
+                <button class="nav-btn" onclick="downloadBackup()">
+                    <i class="fas fa-download"></i> Bazani Saqlash
+                </button>
+                <button class="nav-btn" onclick="document.getElementById('backupInput').click()">
+                    <i class="fas fa-upload"></i> Bazani Tiklash
+                </button>
+                <input type="file" id="backupInput" hidden accept=".json" onchange="restoreBackup(this)">
+            </div>
+
+            <button class="nav-btn" onclick="logout()" style="margin-top: 10px; color: #f87171;">
+                <i class="fas fa-sign-out-alt"></i> Chiqish
+            </button>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h1>Talabalar Hujjatlarini Boshqarish</h1>
+                <div class="user-profile">
+                    <span id="userProfileName">Admin</span>
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                </div>
+            </header>
+
+            <div id="dashboard-section" class="content-section active">
+                <!-- Dashboard content unchanged (truncated for brevity, ensure you keep existing content) -->
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue"><i class="fas fa-users"></i></div>
+                        <div class="stat-info">
+                            <h3>Jami Talabalar</h3>
+                            <p id="totalStudents">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green"><i class="fas fa-graduation-cap"></i></div>
+                        <div class="stat-info">
+                            <h3>Diplomi Bor</h3>
+                            <p id="totalDiplom">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-orange"><i class="fas fa-file-alt"></i></div>
+                        <div class="stat-info">
+                            <h3>Ilovasi Bor</h3>
+                            <p id="totalIlova">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-purple"><i class="fas fa-star"></i></div>
+                        <div class="stat-info">
+                            <h3>Imtiyozli</h3>
+                            <p id="totalImtiyoz">0</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="list-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <h3><i class="fas fa-table"></i> Talabalar Ro'yxati</h3>
+                            <button id="btnAddStudent" class="btn-primary" onclick="openModal()"
+                                style="font-size: 14px; padding: 6px 16px;">
+                                <i class="fas fa-plus"></i> Yangi Qo'shish
+                            </button>
+                        </div>
+                        <div class="header-right">
+                            <button id="btnImportExcel" class="btn-success" onclick="triggerExcelImport()"
+                                style="background-color: #3b82f6;">
+                                <i class="fas fa-file-import"></i> Import
+                            </button>
+                            <button id="btnExportExcel" class="btn-success" onclick="exportStudentList()">
+                                <i class="fas fa-file-export"></i> Excel
+                            </button>
+                            <select id="yearFilter" onchange="filterTable()" class="year-select">
+                                <option value="">Barcha Yillar</option>
+                            </select>
+                            <select id="specialtyFilter" onchange="filterTable()" class="year-select"
+                                style="margin-left: 5px;">
+                                <option value="">Barcha Yo'nalishlar</option>
+                            </select>
+                            <select id="statusFilter" onchange="filterTable()" class="year-select"
+                                style="margin-left: 5px;">
+                                <option value="">Barcha Holatlar</option>
+                                <option value="To'liq">To'liq</option>
+                                <option value="Chala">Chala</option>
+                            </select>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Qidirish...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>F.I.O</th>
+                                    <th>Talaba ID</th>
+                                    <th>Pasport (M-atlar)</th>
+                                    <th>Yo'nalish</th>
+                                    <th>Qabul Yili</th>
+                                    <th>Holat</th>
+                                    <th>Pasport (Fayl)</th>
+                                    <th>Diplom (Fayl)</th>
+                                    <th>Ilova (Fayl)</th>
+                                    <th>Imtiyoz (Fayl)</th>
+                                    <th>Amallar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <!-- Data will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="specialties-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-ul"></i> Yo'nalishlar (Bo'lim)</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="form-grid" style="grid-template-columns: 3fr 1fr; margin-bottom: 20px;">
+                            <input type="text" id="secSpecialtyInput" placeholder="Yangi yo'nalish nomi...">
+                            <button class="btn-primary" onclick="addSpecialty('sec')">Qo'shish</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nomi</th>
+                                        <th width="50">Amal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="secSpecialtyTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="users-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users-cog"></i> Foydalanuvchilar (Bo'lim)</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="form-grid"
+                            style="grid-template-columns: 1.5fr 1.5fr 2fr 1.5fr 0.5fr; gap: 10px; margin-bottom: 20px;">
+                            <input type="text" id="secUsername" placeholder="Login">
+                            <input type="password" id="secPassword" placeholder="Parol">
+                            <input type="text" id="secFullname" placeholder="Ism">
+                            <select id="secRole"
+                                style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <option value="operator">Operator 1</option>
+                                <option value="operator2">Operator 2 (Iqtidorli)</option>
+                                <option value="user">Foydalanuvchi</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button class="btn-primary" onclick="addUser('sec')">+</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Login</th>
+                                        <th>Ism</th>
+                                        <th>Rol</th>
+                                        <th width="50">Amal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="secUsersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gifted-section" class="content-section">
+                <div class="card">
+                    <div class="card-header"
+                        style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3><i class="fas fa-star"></i> Tanlovlar Ro'yxati</h3>
+                        <button class="btn-primary" onclick="openContestModal()"><i class="fas fa-plus"></i> Yangi
+                            Tanlov Qo'shish</button>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tanlov Nomi</th>
+                                        <th>Muddat</th>
+                                        <th>Tanlov Kuni</th>
+                                        <th>Holat</th>
+                                        <th>Arizalar</th>
+                                        <th>Amal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contestsListTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align:center; color:#888;">Hozircha tanlovlar yo'q
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applications for Selected Contest -->
+                <div class="card" id="contestApplicationsCard" style="margin-top: 20px; display: none;">
+                    <div class="card-header">
+                        <h4><i class="fas fa-list"></i> <span id="selectedContestName">Tanlov</span> - Arizalar</h4>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>F.I.O</th>
+                                        <th>Sana</th>
+                                        <th>Hujjatlar</th>
+                                        <th>Holat</th>
+                                        <th>Amal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="giftedApplicationsTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center; color:#888;">Hozircha arizalar yo'q
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-tools"></i> Tizim Sozlamalari</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div>
+                                <strong style="display: block; color: #334155;">Statusni orqaga qaytarishni
+                                    cheklash</strong>
+                                <small style="color: #64748b;">Yoqilganda, faqat adminlar "Topshirgan" holatini qaytara
+                                    oladi.</small>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="rollbackToggle" onchange="saveSettings()">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div id="dangerZoneCard" class="card" style="margin-top: 20px; border: 1px solid #fecaca;">
+                    <div class="card-header" style="border-bottom-color: #fecaca;">
+                        <h3 style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> Xavfli Hudud</h3>
+                    </div>
+                    <p style="color: #64748b; margin-bottom: 15px;">Agar ro'yxatda xatolik bo'lsa yoki dublikatlar paydo
+                        bo'lsa, bazani tozalashingiz mumkin.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="nav-btn" onclick="clearAllStudents()"
+                            style="background-color: #fee2e2; color: #ef4444; width: auto; justify-content: center;">
+                            <i class="fas fa-trash"></i> Barcha Talabalarni O'chirish
+                        </button>
+                        <button class="nav-btn" onclick="removeDuplicates()"
+                            style="background-color: #ffedd5; color: #c2410c; width: auto; justify-content: center;">
+                            <i class="fas fa-filter"></i> Dublikatlarni Topib O'chirish
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analysis-section" class="content-section">
+                <!-- Analysis Content (Existing) -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-file-invoice-dollar"></i> To'lov va Tahlil</h3>
+                        <div class="header-right">
+                            <select id="analysisFilter" onchange="applyAnalysisFilter()" class="year-select"
+                                style="margin-right: 10px;">
+                                <option value="all">Barchasi</option>
+                                <option value="paid">To'liq To'laganlar</option>
+                                <option value="debt">Qarzdorlar</option>
+                                <option value="studying">O'qimoqda</option>
+                            </select>
+                            <input type="file" id="paymentInput" hidden accept=".xlsx, .xls"
+                                onchange="runPaymentAnalysis(this)">
+                            <button class="btn-primary" onclick="document.getElementById('paymentInput').click()">
+                                <i class="fas fa-upload"></i> To'lovlarni Yuklash (Excel)
+                            </button>
+                        </div>
+                    </div>
+                    <!-- (Stats and Table remain here implicitly via existing code, this block just ensures structure integrity for replacement) -->
+                    <!-- I am not replacing the whole analysis content, just wrapping around to find insertion point or ensure correct context. -->
+                    <!-- Actually easier to just append the new section AFTER this section. -->
+                    <!-- But replace_file_content needs target. Let's start replacement from END of analysis section -->
+                </div>
+                <!-- Re-insert rest of analysis section content if needed? No, user wants NEW section. -->
+                <!-- Let's target the END of analysis-section div and insert new section After it. -->
+            </div>
+
+            <!-- EXAM SECTION -->
+            <div id="exam-section" class="content-section">
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-clipboard-list"></i> Yakuniy Nazorat Imtihonlari</h3>
+                        <div class="header-right">
+                            <button class="btn-primary" onclick="document.getElementById('examInput').click()">
+                                <i class="fas fa-file-excel"></i> Dekanat Faylini Yuklash (Excel)
+                            </button>
+                            <input type="file" id="examInput" hidden accept=".xlsx, .xls"
+                                onchange="processExamFile(this)">
+                            <button class="btn-success" onclick="printExamList()">
+                                <i class="fas fa-print"></i> Chop Etish
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 20px;">
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>Fakultetlar</h3>
+                                <select id="examFacultyFilter" class="year-select" style="width:100%"
+                                    onchange="filterExamList()">
+                                    <option value="">Barchasi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>Yo'nalishlar</h3>
+                                <select id="examSpecialtyFilter" class="year-select" style="width:100%"
+                                    onchange="filterExamList()">
+                                    <option value="">Barchasi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-info">
+                                <h3>Kurslar</h3>
+                                <select id="examYearFilter" class="year-select" style="width:100%"
+                                    onchange="filterExamList()">
+                                    <option value="">Barchasi</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table" id="examTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>F.I.O</th>
+                                    <th>Fakultet / Yo'nalish</th>
+                                    <th>Kurs</th>
+                                    <th>Status</th>
+                                    <th>Imtihonga Ruxsat</th>
+                                </tr>
+                            </thead>
+                            <tbody id="examTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center; color:#888;">Fayl yuklanmagan</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT SECTION -->
+            <div id="student-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-circle"></i> Shaxsiy Kabinet</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="student-info-banner"
+                            style="display: flex; gap: 20px; align-items: center; background: #f0f9ff; padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 1px solid #bae6fd;">
+                            <div class="avatar"
+                                style="width: 80px; height: 80px; font-size: 32px; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h2 id="portalStudentName" style="margin: 0; color: #0c4a6e;">Talaba Ismi</h2>
+                                <p id="portalStudentDetails" style="margin: 5px 0 0; color: #0369a1;">Yo'nalish: - |
+                                    Yil: -</p>
+                            </div>
+                        </div>
+
+                        <div id="studentNotifications" style="margin-bottom: 20px;">
+                            <!-- Messages from admin -->
+                        </div>
+
+                        <h4 style="margin-bottom: 15px; color: #334155;"><i class="fas fa-file-invoice"></i> Mening
+                            Hujjatlarim Holati</h4>
+                        <div class="student-docs-grid" id="studentDocsList"
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                            <!-- Dynamic content here -->
+                        </div>
+
+                        <!-- NEW: Queue Status Section -->
+                        <h4 style="margin-bottom: 15px; color: #334155;"><i class="fas fa-users-rectangle"></i> Mening
+                            Navbatim</h4>
+                        <div id="studentQueueCard" class="card"
+                            style="padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 30px; background: #fdfcf0; border-left: 5px solid #eab308;">
+                            <div id="queue-status-loading">Yuklanmoqda...</div>
+                            <div id="queue-status-empty" style="display: none;">
+                                <p>Siz hali navbat olmagansiz.</p>
+                                <button class="btn-primary" onclick="takeStudentTicket('Ro\'yxatga olish')">Navbat olish
+                                    (Ro'yxatga olish)</button>
+                            </div>
+                            <div id="queue-status-active" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <p style="margin: 0; color: #854d0e; font-weight: bold;">Sizning raqamingiz:</p>
+                                        <h2 id="student-ticket-num"
+                                            style="margin: 5px 0; font-size: 2.5rem; color: #1e293b;">---</h2>
+                                        <p id="student-queue-pos" style="margin: 0; color: #64748b;">Sizdan oldin: -- ta
+                                            odam bor</p>
+                                    </div>
+                                    <div id="student-window-call"
+                                        style="background: #2563eb; color: white; padding: 10px 20px; border-radius: 10px; display: none;">
+                                        <small>Oynaga marhamat:</small>
+                                        <h3 id="call-window-name" style="margin: 0;">1-oyna</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gifted Children Collapsible Section -->
+                        <div class="card"
+                            style="margin-top: 30px; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s;"
+                            onclick="toggleStudentGiftedOptions()">
+                            <div
+                                style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div
+                                        style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 18px; color: #1e293b;">Iqtidorli Talabalar
+                                            Portali</h4>
+                                        <p style="margin: 5px 0 0; font-size: 13px; color: #64748b;">Tanlovlar va
+                                            Arizalar bo'limini ochish</p>
+                                    </div>
+                                </div>
+                                <i id="gifted-chevron" class="fas fa-chevron-right"
+                                    style="color: #94a3b8; font-size: 20px; transition: transform 0.3s;"></i>
+                            </div>
+                        </div>
+
+                        <div id="student-gifted-options"
+                            style="display: none; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; animation: slideDown 0.3s ease-out;">
+                            <div class="card"
+                                style="padding: 20px; cursor: pointer; transition: transform 0.2s; border-left: 4px solid #9333ea;"
+                                onclick="switchTab('student-gifted-contests')">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div
+                                        style="background: #efe4ff; color: #9333ea; width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                        <i class="fas fa-trophy"></i>
+                                    </div>
+                                    <div>
+                                        <h5 style="margin: 0 0 5px; font-size: 16px;">Tanlovlarda Qatnashish</h5>
+                                        <p style="margin: 0; font-size: 13px; color: #64748b;">Faol tanlovlarni ko'rish
+                                            va ariza topshirish</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card"
+                                style="padding: 20px; cursor: pointer; transition: transform 0.2s; border-left: 4px solid #0284c7;"
+                                onclick="switchTab('student-gifted-apps')">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div
+                                        style="background: #e0f2fe; color: #0284c7; width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    <div>
+                                        <h5 style="margin: 0 0 5px; font-size: 16px;">Mening Arizalarim</h5>
+                                        <p style="margin: 0; font-size: 13px; color: #64748b;">Topshirgan arizalaringiz
+                                            holatini kuzatish</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT GIFTED SECTION -->
+            <!-- STUDENT GIFTED: CONTESTS SECTION -->
+            <div id="student-gifted-contests-section" class="content-section">
+                <div class="card">
+                    <div class="card-header"
+                        style="background: linear-gradient(135deg, #6366f1, #a855f7); color: white; display: flex; align-items: center; gap: 15px;">
+                        <h3><i class="fas fa-award"></i> Faol Tanlovlar</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <p style="color:#64748b; margin-bottom: 20px;">Quyidagi tanlovlarda ishtirok eting va o'z
+                            iqtidoringizni namoyish eting!</p>
+                        <div id="studentContestsList"
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                            <!-- Dynamic Contests -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STUDENT GIFTED: APPLICATIONS SECTION -->
+            <div id="student-gifted-apps-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Mening Arizalarim</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tanlov Nomi</th>
+                                        <th>Yuborilgan Sana</th>
+                                        <th>Holat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentApplicationsTableBody">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center;">Ma'lumot yo'q</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Apply Modal -->
+            <div id="studentApplyModal" class="modal-overlay">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-paper-plane"></i> Arizani Yuborish</h3>
+                        <button class="close-modal" onclick="closeStudentApplyModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form onsubmit="submitStudentContestApplication(event)">
+                            <input type="hidden" id="applyContestId">
+                            <h4 id="applyContestTitle" style="margin-bottom: 15px; color: var(--primary-color);">Tanlov
+                                Nomi</h4>
+
+                            <div class="form-group">
+                                <label>Qisqacha Izoh (Ixtiyoriy)</label>
+                                <textarea id="applyComment" rows="3"
+                                    placeholder="Yutuqlaringiz haqida qisqacha..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Ariza (PDF) <span style="color:red">*</span></label>
+                                <input type="file" id="applyFileAriza" accept="application/pdf" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Pasport Nusxasi (PDF) <span style="color:red">*</span></label>
+                                <input type="file" id="applyFilePassport" accept="application/pdf" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Boshqa Hujjatlar (Sertifikat/Diplomlar - PDF)</label>
+                                <input type="file" id="applyFileOther" accept="application/pdf">
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">Yuborish</button>
+                                <button type="button" class="btn-secondary" onclick="closeStudentApplyModal()">Bekor
+                                    qilish</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- UPDATES SECTION (Admin Only) -->
+            <div id="updates-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bell"></i> Hujjatlarni Tasdiqlash (Kutilayotgan o'zgarishlar)</h3>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div id="pendingUpdatesList" style="display: grid; gap: 20px;">
+                            <!-- Pending updates will be rendered here -->
+                            <p style="color: #64748b; text-align: center;">Hozircha yangi so'rovlar yo'q.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Structure -->
+            <div id="studentModal" class="modal-overlay">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Yangi Talaba Kiritish</h3>
+                        <button class="close-modal" onclick="closeModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="studentForm" onsubmit="saveStudent(event)">
+                            <input type="hidden" id="studentId">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>F.I.O (To'liq ism)</label>
+                                    <input type="text" id="fio" placeholder="Masalan: Teshaboyev Eshmat Toshmatovich"
+                                        required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Talaba ID</label>
+                                    <input type="text" id="student_id_val" placeholder="Hozirgi ID">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Pasport (Serya va raqam)</label>
+                                    <input type="text" id="passport_serial" placeholder="AA1234567">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Qabul Qilingan Yili</label>
+                                    <input type="number" id="year" min="1990" max="2030" placeholder="2024" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Yo'nalish (Mutaxassislik)</label>
+                                    <select id="specialtySelect" required
+                                        style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                        <option value="">Tanlang...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Pasport (Rasm)</label>
+                                    <input type="file" id="passport" accept="image/*">
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="status_passport">
+                                        <label for="status_passport" class="checkbox-label">Hujjat qabul qilindi
+                                            (Faylsiz)</label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Diplom (Rasm)</label>
+                                    <input type="file" id="diplom" accept="image/*">
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="status_diplom">
+                                        <label for="status_diplom" class="checkbox-label">Hujjat qabul qilindi
+                                            (Faylsiz)</label>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Diplom Ilova (Rasm)</label>
+                                    <input type="file" id="ilova" accept="image/*">
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="status_ilova">
+                                        <label for="status_ilova" class="checkbox-label">Hujjat qabul qilindi
+                                            (Faylsiz)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label>Imtiyoz (Rasm)</label>
+                                <input type="file" id="imtiyoz" accept="image/*">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" id="status_imtiyoz">
+                                    <label for="status_imtiyoz" class="checkbox-label">Hujjat qabul qilindi
+                                        (Faylsiz)</label>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Saqlash
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="closeModal()">Bekor
+                                    qilish</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contest Modal -->
+            <div id="contestModal" class="modal-overlay" style="display: none;">
+                <div class="modal" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 id="contestModalTitle"><i class="fas fa-star"></i> Yangi Tanlov Qo'shish</h3>
+                        <button class="close-modal" onclick="closeContestModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="contestForm" onsubmit="saveContest(event)">
+                            <input type="hidden" id="contestId">
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov nomi <span
+                                        style="color: red;">*</span>:</label>
+                                <input type="text" id="modalContestTitle" required
+                                    placeholder="Masalan: Yilning eng yaxshi iqtidorli talabasi"
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
+                                    tavsifi:</label>
+                                <textarea id="modalContestDesc" placeholder="Tanlov haqida batafsil ma'lumot..."
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); min-height: 80px;"></textarea>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov logotipi
+                                    (ixtiyoriy):</label>
+                                <input type="file" id="modalContestLogo" accept="image/*"
+                                    style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                                <div id="modalLogoPreview" style="margin-top: 10px; display: none;">
+                                    <img id="modalLogoImg"
+                                        style="max-width: 200px; max-height: 100px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                </div>
+                            </div>
+                            <div class="form-grid"
+                                style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
+                                        boshlanish sanasi:</label>
+                                    <input type="date" id="modalContestStart"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza tugash
+                                        sanasi:</label>
+                                    <input type="date" id="modalContestEnd"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                </div>
+                            </div>
+                            <div class="form-grid"
+                                style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
+                                        o'tkaziladigan kun:</label>
+                                    <input type="date" id="modalContestEvent"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Manzil:</label>
+                                    <input type="text" id="modalContestAddress" placeholder="Masalan: Katta zal"
+                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nizomni yuklash
+                                    (PDF):</label>
+                                <input type="file" id="modalContestNizom" accept="application/pdf"
+                                    style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                            </div>
+
+                            <div style="margin-bottom: 15px;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <label style="font-weight: 600;">Talab qilinadigan hujjatlar:</label>
+                                    <button type="button" onclick="addRequiredDocument()" class="btn-primary"
+                                        style="padding: 4px 8px; font-size: 12px; background: #8b5cf6;">
+                                        <i class="fas fa-plus"></i> Qo'shish
+                                    </button>
+                                </div>
+                                <div id="requiredDocumentsList"
+                                    style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; min-height: 40px; background: #fbfbfb;">
+                                    <!-- Dynamic list items -->
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Saqlash
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="closeContestModal()">Bekor
+                                    qilish</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Contest Application Modal -->
+            <div id="studentContestModal" class="modal-overlay" style="display: none;">
+                <div class="modal" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h3 id="studentContestModalTitle"><i class="fas fa-paper-plane"></i> Arizani Jo'natish</h3>
+                        <button class="close-modal" onclick="closeStudentContestModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="studentContestInfo"
+                            style="background: #fdf4ff; border: 1px dashed #d946ef; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                            <!-- Contest info will be loaded here -->
+                        </div>
+
+                        <form id="studentGiftedApplicationForm" onsubmit="submitStudentGiftedApplication(event)">
+                            <input type="hidden" id="selectedContestIdForStudent">
+
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Yutuqlaringiz
+                                    haqida batafsil:</label>
+                                <textarea id="studentGiftedComment"
+                                    placeholder="Bu yerda yutuqlaringizni sanab o'ting..." required
+                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 100px; font-size: 14px;"></textarea>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
+                                        (PDF):</label>
+                                    <input type="file" id="studentGiftedFileAriza" required accept="application/pdf"
+                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                                </div>
+                                <div id="studentPassportContainer">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pasport
+                                        nusxasi:</label>
+                                    <div id="studentPassportStatus" style="display: none; margin-bottom: 8px;"></div>
+                                    <input type="file" id="studentGiftedFilePassport" required
+                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                                </div>
+                                <div style="grid-column: span 2;">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshqa
+                                        hujjatlar (ixtiyoriy):</label>
+                                    <input type="file" id="studentGiftedFileOther"
+                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-primary"
+                                    style="background: linear-gradient(90deg, #6366f1, #a855f7);">
+                                    <i class="fas fa-paper-plane"></i> Arizani Jo'natish
+                                </button>
+                                <button type="button" class="btn-secondary" onclick="closeStudentContestModal()">Bekor
+                                    qilish</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="contests.js"></script>
+    <script src="student-contests.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

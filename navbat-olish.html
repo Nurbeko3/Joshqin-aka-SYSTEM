@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbat Olish - EduDocs</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-queue {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 1.5rem 2rem;
+            font-size: 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            width: 100%;
+            margin: 0.5rem 0;
+            font-weight: bold;
+        }
+
+        .btn-queue:hover {
+            transform: scale(1.05);
+            background: #45a049;
+        }
+
+        .ticket-display {
+            display: none;
+            margin-top: 2rem;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .ticket-number {
+            font-size: 4rem;
+            color: #ffeb3b;
+            font-weight: 900;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="main-ui">
+        <h1>Xush Kelibsiz!</h1>
+        <p>Iltimos, xizmat turini tanlang:</p>
+        <button class="btn-queue" onclick="takeTicket('Ro\'yxatga olish')">📝 Ro'yxatga olish</button>
+        <button class="btn-queue" onclick="takeTicket('Hujjat topshirish')">📂 Hujjat topshirish</button>
+        <button class="btn-queue" onclick="takeTicket('Ma\'lumotnoma')">ℹ️ Ma'lumotnoma</button>
+
+        <div id="ticket-result" class="ticket-display">
+            <h2>Sizning raqamingiz:</h2>
+            <div class="ticket-number" id="num-val">A-001</div>
+            <p>Iltimos, kutish zalida raqamingiz chiqishini kuting.</p>
+            <button class="btn-queue" style="background:#2196f3" onclick="resetUI()">Yopish</button>
+        </div>
+    </div>
+
+    <script>
+        async function takeTicket(service) {
+            const res = await fetch('/api/data');
+            const data = await res.json();
+
+            data.queue_settings.last_number++;
+            const num = data.queue_settings.last_number;
+            const prefix = data.queue_settings.prefix;
+            const ticketString = `${prefix}-${String(num).padStart(3, '0')}`;
+
+            const newTicket = {
+                id: Date.now(),
+                number: ticketString,
+                service: service,
+                status: 'waiting',
+                time: new Date().toLocaleTimeString()
+            };
+
+            data.queue_tickets.push(newTicket);
+
+            await fetch('/api/save', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            document.querySelectorAll('.btn-queue').forEach(b => b.hidden = true);
+            document.querySelector('#main-ui p').hidden = true;
+            document.getElementById('num-val').innerText = ticketString;
+            document.getElementById('ticket-result').style.display = 'block';
+        }
+
+        function resetUI() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbat Admin - EduDocs</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: #f1f5f9;
+            color: #1e293b;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .btn-call {
+            background: #2563eb;
+            color: white;
+            flex: 2;
+        }
+
+        .btn-call:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-recall {
+            background: #64748b;
+            color: white;
+            flex: 1;
+        }
+
+        .current-status {
+            font-size: 1.5rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+        }
+
+        .status-num {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #1e293b;
+            display: block;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-card">
+        <h1>Xodim Paneli</h1>
+
+        <label for="window-select">Oynani tanlang:</label>
+        <select id="window-select" onchange="updateUI()">
+            <option value="1">1-Oyna</option>
+            <option value="2">2-Oyna</option>
+        </select>
+
+        <div class="current-status" id="current-status">
+            Hozirgi mijoz:
+            <span class="status-num" id="active-ticket">---</span>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-call" onclick="callNext()">KEYINGI MIJOZ ➡</button>
+            <button class="btn btn-recall" onclick="reCall()">QAYTA CHAQIRISH 🔁</button>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h3>Kutish ro'yxati: <span id="wait-count">0</span></h3>
+        </div>
+    </div>
+
+    <script>
+        async function callNext() {
+            const windowId = parseInt(document.getElementById('window-select').value);
+            const res = await fetch('/api/data?t=' + new Date().getTime());
+            const data = await res.json();
+
+            // Find next waiting ticket
+            const nextIdx = data.queue_tickets.findIndex(t => t.status === 'waiting');
+
+            if (nextIdx === -1) {
+                alert("Hozircha navbatda hech kim yo'q");
+                return;
+            }
+
+            const ticket = data.queue_tickets[nextIdx];
+            ticket.status = 'called';
+            ticket.window = windowId;
+
+            // Update counter
+            const counter = data.queue_counters.find(c => c.id === windowId);
+            counter.current_ticket = ticket.number;
+
+            await fetch('/api/save', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+
+            updateUI();
+        }
+
+        async function reCall() {
+            const windowId = parseInt(document.getElementById('window-select').value);
+            // In a real app, this would trigger a socket or flag for the monitor to animate again
+            alert("Mijoz qayta chaqirildi!");
+        }
+
+        async function updateUI() {
+            const windowId = parseInt(document.getElementById('window-select').value);
+            const res = await fetch('/api/data?t=' + new Date().getTime());
+            const data = await res.json();
+
+            const counter = data.queue_counters.find(c => c.id === windowId);
+            document.getElementById('active-ticket').innerText = counter.current_ticket || '---';
+
+            const waitingCount = data.queue_tickets.filter(t => t.status === 'waiting').length;
+            document.getElementById('wait-count').innerText = waitingCount;
+        }
+
+        updateUI();
+        setInterval(updateUI, 5000);
+    </script>
+</body>
+
+</html>
