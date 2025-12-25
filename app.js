@@ -7,6 +7,23 @@ let appData = {
     }
 };
 
+/**
+ * Toggles the mobile sidebar visibility.
+ */
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+
+    if (sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+    } else {
+        sidebar.classList.add('active');
+        if (overlay) overlay.classList.add('active');
+    }
+}
+
+
 // Syncing Logic
 async function loadFromServer() {
     try {

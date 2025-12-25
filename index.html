@@ -40,7 +40,11 @@
             <div class="logo">
                 <i class="fas fa-graduation-cap"></i>
                 <h2>EduDocs</h2>
+                <button class="close-sidebar-btn" onclick="toggleMobileSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
+
             <nav>
                 <button id="nav-dashboard-toggle" class="nav-btn" onclick="toggleDashboardMenu()">
                     <i class="fas fa-home"></i> Bosh Sahifa <i class="fas fa-chevron-down"
@@ -147,9 +151,17 @@
             </button>
         </aside>
 
+        <!-- Overlay for mobile sidebar -->
+        <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+
         <main class="main-content">
             <header>
-                <h1>Talabalar Hujjatlarini Boshqarish</h1>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>Talabalar Hujjatlarini Boshqarish</h1>
+                </div>
                 <div class="user-profile">
                     <span id="userProfileName">Admin</span>
                     <div class="avatar"><i class="fas fa-user"></i></div>
