@@ -44,10 +44,24 @@ async function loadFromServer() {
         }
     } catch (e) {
         console.warn("Serverga ulanib bo'lmadi, lokal xotiradan foydalaniladi.", e);
-        appData.students = JSON.parse(localStorage.getItem('students')) || [];
+        const localStudents = JSON.parse(localStorage.getItem('students'));
+
+        if (window.INITIAL_STUDENTS && (!localStudents || localStudents.length === 0)) {
+            appData.students = window.INITIAL_STUDENTS;
+            // Also sync to local storage so next time it's there? Maybe not to avoid duplication if file updates.
+            // But for now this ensures the list shows up.
+        } else {
+            appData.students = localStudents || [];
+        }
+
         appData.specialties = JSON.parse(localStorage.getItem('specialties')) || [];
         appData.system_users = JSON.parse(localStorage.getItem('system_users')) || [];
         appData.settings = JSON.parse(localStorage.getItem('app_settings')) || { disableStatusRollback: false };
+    }
+
+    if ((!appData.students || appData.students.length === 0) && window.INITIAL_STUDENTS) {
+        appData.students = window.INITIAL_STUDENTS;
+        localStorage.setItem('students', JSON.stringify(appData.students)); // Force update cache
     }
 }
 
