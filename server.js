@@ -36,8 +36,10 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
     // API Endpoints
     if (req.url === '/api/data' && req.method === 'GET') {
+        console.log(`[GET] ${req.url} - Ma'lumotlar so'ralmoqda...`);
         fs.readFile(DB_FILE, (err, data) => {
             if (err) {
+                console.error("[XATOLIK] Bazani o'qishda xatolik:", err);
                 res.writeHead(500);
                 return res.end('Error reading data');
             }
@@ -54,13 +56,23 @@ const server = http.createServer((req, res) => {
 
     if (req.url === '/api/save' && req.method === 'POST') {
         let body = '';
+        console.log(`[POST] ${req.url} - Ma'lumotlarni saqlash boshlandi...`);
         req.on('data', chunk => { body += chunk.toString(); });
+        req.on('error', (err) => {
+            console.error("[XATOLIK] Stream o'qishda xatolik:", err);
+            res.writeHead(500);
+            res.end('Request stream error');
+        });
         req.on('end', () => {
+            const sizeMB = (body.length / (1024 * 1024)).toFixed(2);
+            console.log(`[POST] Ma'lumotlarni yozish... (Hajmi: ${sizeMB} MB)`);
             fs.writeFile(DB_FILE, body, (err) => {
                 if (err) {
+                    console.error("[XATOLIK] Bazani saqlashda xatolik:", err);
                     res.writeHead(500);
                     return res.end('Error saving data');
                 }
+                console.log(`[OK] Ma'lumotlar saqlandi!`);
                 res.writeHead(200);
                 res.end('Saved');
             });

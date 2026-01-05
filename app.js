@@ -2,6 +2,7 @@ let appData = {
     students: [],
     specialties: [],
     system_users: [],
+    certificates: [],
     settings: {
         disableStatusRollback: false
     }
@@ -31,41 +32,85 @@ async function loadFromServer() {
         if (res.ok) {
             const data = await res.json();
             appData = { ...appData, ...data };
+
+            // Core Fallback Keys
+            if (!appData.students) appData.students = [];
+            if (!appData.specialties) appData.specialties = [];
             if (!appData.gifted_applications) appData.gifted_applications = [];
             if (!appData.contests) appData.contests = [];
             if (!appData.settings.contestTitle) appData.settings.contestTitle = "Iqtidorli Bolalar Tanlovi";
-            if (!appData.settings.contestDescription) appData.settings.contestDescription = "Universitetimizda iqtidorli talabalarni qo'llab-quvvatlash maqsadida \"Yilning eng yaxshi iqtidorli talabasi\" tanlovi e'lon qilinadi. Qatnashish uchun o'z yutuqlaringiz aksi etgan hujjatlarni (sertifikat, diplom, maqola va h.k.) yuklang.";
 
-            // Sync fallback to localStorage for offline cache
+            // Sync EVERYTHING to localStorage for offline cache
+            localStorage.setItem('app_db_full', JSON.stringify(appData));
+
+            // Legacy individual keys for compatibility
             localStorage.setItem('students', JSON.stringify(appData.students));
             localStorage.setItem('specialties', JSON.stringify(appData.specialties));
-            localStorage.setItem('system_users', JSON.stringify(appData.system_users));
             localStorage.setItem('app_settings', JSON.stringify(appData.settings));
+        } else {
+            throw new Error("Server xatosi: " + res.status);
         }
     } catch (e) {
         console.warn("Serverga ulanib bo'lmadi, lokal xotiradan foydalaniladi.", e);
-        appData.students = JSON.parse(localStorage.getItem('students')) || [];
-        appData.specialties = JSON.parse(localStorage.getItem('specialties')) || [];
-        appData.system_users = JSON.parse(localStorage.getItem('system_users')) || [];
-        appData.settings = JSON.parse(localStorage.getItem('app_settings')) || { disableStatusRollback: false };
+        const cached = localStorage.getItem('app_db_full');
+        if (cached) {
+            appData = JSON.parse(cached);
+        } else {
+            // Very old legacy fallback
+            appData.students = JSON.parse(localStorage.getItem('students')) || [];
+            appData.specialties = JSON.parse(localStorage.getItem('specialties')) || [];
+            appData.settings = JSON.parse(localStorage.getItem('app_settings')) || { disableStatusRollback: false };
+        }
+    }
+}
+
+// Helper to Show/Hide Global Loading
+function showLoading(text = "Yuklanmoqda...") {
+    document.getElementById('globalLoadingText').innerText = text;
+    document.getElementById('globalSpinner').style.display = 'block';
+    document.getElementById('globalSuccessIcon').style.display = 'none';
+    document.getElementById('globalLoadingOverlay').style.display = 'flex';
+}
+
+function hideLoading(successText = null) {
+    if (successText) {
+        document.getElementById('globalLoadingText').innerText = successText;
+        document.getElementById('globalSpinner').style.display = 'none';
+        document.getElementById('globalSuccessIcon').style.display = 'block';
+
+        setTimeout(() => {
+            document.getElementById('globalLoadingOverlay').style.display = 'none';
+        }, 2000);
+    } else {
+        document.getElementById('globalLoadingOverlay').style.display = 'none';
     }
 }
 
 async function saveToServer() {
-    // Save to local cache first
-    localStorage.setItem('students', JSON.stringify(appData.students));
-    localStorage.setItem('specialties', JSON.stringify(appData.specialties));
-    localStorage.setItem('system_users', JSON.stringify(appData.system_users));
-    localStorage.setItem('app_settings', JSON.stringify(appData.settings));
-
     try {
-        await fetch('/api/save', {
+        showLoading("Ma'lumotlar saqlanmoqda...");
+
+        // Save to local cache
+        localStorage.setItem('app_db_full', JSON.stringify(appData));
+
+        const res = await fetch('/api/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(appData)
         });
+        if (!res.ok) {
+            throw new Error("Server saqlashni rad etdi");
+        }
+        console.log("Ma'lumotlar serverga saqlandi.");
+        hideLoading("Muvaffaqiyatli saqlandi!");
     } catch (e) {
         console.error("Saqlashda xatolik:", e);
+        hideLoading(); // Hide overlay without success message
+        if (e.name === 'QuotaExceededError') {
+            console.warn("LocalStorage to'lib qoldi, faqat serverga saqlanadi.");
+        } else {
+            alert("DIQQAT: Ma'lumotlar serverga saqlanmadi! \nServer yoniqligini tekshiring.");
+        }
     }
 }
 
@@ -93,7 +138,10 @@ function switchTab(tabId) {
     else if (tabId === 'gifted') sectionId = 'gifted-section'; // New
     else if (tabId === 'student-gifted-contests') sectionId = 'student-gifted-contests-section'; // New
     else if (tabId === 'student-gifted-apps') sectionId = 'student-gifted-apps-section'; // New
-
+    else if (tabId === 'attendance') sectionId = 'attendance-section';
+    else if (tabId === 'student-attendance') sectionId = 'student-attendance-section';
+    else if (tabId === 'student-ai') sectionId = 'student-ai-section';
+    else sectionId = tabId + '-section';
     document.getElementById(sectionId).classList.add('active');
 
     const btns = document.querySelectorAll('.nav-btn');
@@ -150,6 +198,10 @@ function switchTab(tabId) {
         const lBtn = document.getElementById('nav-list');
         if (lBtn) lBtn.classList.add('active');
     }
+    else if (tabId === 'attendance') {
+        const atBtn = document.getElementById('nav-attendance');
+        if (atBtn) atBtn.classList.add('active');
+    }
     else if (tabId === 'updates') {
         const upBtn = document.getElementById('nav-updates');
         if (upBtn) upBtn.classList.add('active');
@@ -173,6 +225,15 @@ function switchTab(tabId) {
     else if (tabId === 'analysis') {
         const anBtn = document.getElementById('nav-analysis');
         if (anBtn) anBtn.classList.add('active');
+    }
+    else if (tabId === 'student-attendance') {
+        const staBtn = document.getElementById('nav-student-attendance');
+        if (staBtn) staBtn.classList.add('active');
+    }
+    else if (tabId === 'student-ai') {
+        const saiBtn = document.getElementById('nav-student-ai');
+        if (saiBtn) saiBtn.classList.add('active');
+        initStudentAI(); // Initialize AI features
     }
 
     else if (tabId === 'analysis') {
@@ -230,6 +291,10 @@ function switchTab(tabId) {
         loadNotifications();
     } else if (tabId === 'updates') {
         loadUpdates();
+    } else if (tabId === 'attendance') {
+        loadAdminCertificates();
+    } else if (tabId === 'student-attendance') {
+        loadStudentCertificates();
     }
     localStorage.setItem('activeTab', tabId);
 }
@@ -362,6 +427,50 @@ const getBase64 = (file) => {
         reader.onerror = error => reject(error);
     });
 };
+
+// Helper to compress image
+function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) {
+            // Not an image (e.g. PDF), just return base64
+            getBase64(file).then(resolve).catch(reject);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
+}
 
 // Save Student
 async function saveStudent(event) {
@@ -537,6 +646,13 @@ function loadStudents() {
     const isViewer = currentRole === 'user';
 
     students.forEach((s, index) => {
+        // Calculate total approved attendance days for the main list
+        const studentApprovedCerts = (appData.certificates || []).filter(cert =>
+            cert.studentId == s.id && cert.status === 'approved'
+        );
+        const totalApprovedDays = studentApprovedCerts.reduce((sum, cert) => sum + cert.days, 0);
+        const attendanceLabel = totalApprovedDays > 0 ? ` <span style="color:#10b981; font-weight:normal; font-size:12px;">(${totalApprovedDays} kun)</span>` : '';
+
         const row = document.createElement('tr');
         row.setAttribute('data-specialty', s.specialty || "");
 
@@ -562,7 +678,7 @@ function loadStudents() {
 
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td style="font-weight: 500;">${s.fio}</td>
+            <td style="font-weight: 500;">${s.fio}${attendanceLabel}</td>
             <td style="font-family: monospace; color: #64748b; font-size: 13px;">${s.student_id || '-'}</td>
             <td style="font-family: monospace; color: #64748b; font-size: 13px;">${s.passport_serial || '-'}</td>
             <td>${s.specialty || '-'}</td>
@@ -630,6 +746,241 @@ function editStudent(id) {
 function viewImage(src) {
     const win = window.open();
     win.document.write(`<img src="${src}" style="max-width:100%; height:auto;">`);
+}
+
+// Download File Helper
+function downloadFile(src, filename) {
+    const link = document.createElement('a');
+    link.href = src;
+    link.download = filename || 'fayl';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Download Multiple Files as PDF (Advanced merge using pdf-lib)
+async function downloadCertAsPdf(files, filename, status = 'pending') {
+    showLoading("PDF tayyorlanmoqda...");
+    try {
+        const lib = window.PDFLib;
+        if (!lib) {
+            alert("PDF kutubxonasi yuklanmagan. Iltimos, sahifani yangilang.");
+            hideLoading();
+            return;
+        }
+
+        const { PDFDocument, rgb, StandardFonts, degrees } = lib;
+        const mergedPdf = await PDFDocument.create();
+
+        const validFiles = (Array.isArray(files) ? files : [files]).filter(f => f && typeof f === 'string');
+
+        if (validFiles.length === 0) {
+            alert("Hujjat fayllari topilmadi.");
+            hideLoading();
+            return;
+        }
+
+        const isApproved = status === 'approved';
+        const isRejected = status === 'rejected';
+
+        let sealText = '';
+        let sealColor = rgb(0.31, 0.27, 0.9); // Default Indigo
+        if (isApproved) sealText = 'REGISTRATOR OFISI TASDIQLADI';
+        if (isRejected) {
+            sealText = 'RAD ETILDI';
+            sealColor = rgb(0.94, 0.27, 0.27); // #ef4444
+        }
+
+        const font = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+
+        for (const file of validFiles) {
+            try {
+                let targetPage = null;
+                if (file.startsWith('data:image/')) {
+                    const imgBytes = await fetch(file).then(res => res.arrayBuffer());
+                    let image;
+                    if (file.includes('png')) {
+                        image = await mergedPdf.embedPng(imgBytes);
+                    } else {
+                        image = await mergedPdf.embedJpg(imgBytes);
+                    }
+
+                    const page = mergedPdf.addPage([image.width, image.height]);
+                    page.drawImage(image, {
+                        x: 0,
+                        y: 0,
+                        width: image.width,
+                        height: image.height,
+                    });
+                    targetPage = page;
+                } else if (file.startsWith('data:application/pdf')) {
+                    const pdfBytes = await fetch(file).then(res => res.arrayBuffer());
+                    const srcPdf = await PDFDocument.load(pdfBytes);
+                    const pagesToCopy = srcPdf.getPageIndices();
+                    const copiedPages = await mergedPdf.copyPages(srcPdf, pagesToCopy);
+
+                    copiedPages.forEach((page, idx) => {
+                        const newPage = mergedPdf.addPage(page);
+                        if (idx === 0) targetPage = newPage;
+                    });
+                }
+
+                if (sealText && targetPage) {
+                    const { width, height } = targetPage.getSize();
+                    const textSize = Math.min(width / 20, 20);
+                    const textWidth = font.widthOfTextAtSize(sealText, textSize);
+
+                    const x = width - textWidth - 50;
+                    const y = height - 60;
+
+                    targetPage.drawRectangle({
+                        x: x - 10,
+                        y: y - 10,
+                        width: textWidth + 20,
+                        height: textSize + 20,
+                        borderColor: sealColor,
+                        borderWidth: 3,
+                        rotate: degrees ? degrees(-10) : 0,
+                        opacity: 0.8
+                    });
+
+                    targetPage.drawText(sealText, {
+                        x: x,
+                        y: y,
+                        size: textSize,
+                        font: font,
+                        color: sealColor,
+                        rotate: degrees ? degrees(-10) : 0,
+                        opacity: 0.9
+                    });
+                }
+            } catch (fileErr) {
+                console.warn("Faylni PDFga qo'shishda xatolik:", fileErr);
+            }
+        }
+
+        if (mergedPdf.getPageCount() === 0) {
+            throw new Error("PDF sahifalari bo'sh");
+        }
+
+        const pdfBytes = await mergedPdf.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const safeFilename = filename.toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        link.download = safeFilename + ".pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        hideLoading("PDF muvaffaqiyatli yuklandi!");
+    } catch (err) {
+        console.error("PDF yaratishda xatolik:", err);
+        hideLoading();
+        alert("Xatolik: PDF faylini tayyorlashda muammo yuz berdi. Iltimos, fayl o'lchami yoki formatini tekshiring.");
+    }
+}
+
+// Helper to view cert by ID (prevents passing huge strings in HTML)
+function viewCert(id) {
+    const cert = (appData.certificates || []).find(c => c.id == id);
+    if (!cert) return alert("Hujjat topilmadi.");
+    viewCertFiles(cert.files || [cert.file], cert.status);
+}
+
+// Helper to download cert by ID
+function downloadCert(id) {
+    const cert = (appData.certificates || []).find(c => c.id == id);
+    if (!cert) return alert("Hujjat topilmadi.");
+
+    const student = (appData.students || []).find(s => s.id == cert.studentId);
+    const name = student ? student.fio : 'malumotnoma';
+    const filename = `${name.replace(/\s+/g, '_')}_${cert.id}`;
+
+    downloadCertAsPdf(cert.files || [cert.file], filename, cert.status);
+}
+
+// View Multiple Files
+function viewCertFiles(files, status = 'pending') {
+    if (!files) return;
+    const validFiles = (Array.isArray(files) ? files : [files]).filter(f => f && typeof f === 'string');
+    if (validFiles.length === 0) {
+        alert("Hujjat fayllari topilmadi.");
+        return;
+    }
+
+    const isApproved = status === 'approved';
+    const isRejected = status === 'rejected';
+
+    let sealText = '';
+    let sealColor = '#4f46e5'; // Indigo
+    let shadowColor = 'rgba(79,70,229,0.3)';
+
+    if (isApproved) sealText = 'REGISTRATOR OFISI TASDIQLADI';
+    if (isRejected) {
+        sealText = 'RAD ETILDI';
+        sealColor = '#ef4444'; // Red
+        shadowColor = 'rgba(239,68,68,0.3)';
+    }
+
+    const win = window.open();
+    if (!win) return alert("Iltimos, brauzeringizga oyna ochishga ruxsat bering (Pop-ups blocked).");
+
+    let content = `<html><head><title>Hujjatlarni ko'rish</title><style>
+        body{text-align:center; background:#f3f4f6; margin:0; padding:20px; font-family:sans-serif;} 
+        .container { position: relative; display: inline-block; margin-bottom: 20px; background:white; padding:10px; border-radius:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);}
+        img{max-width:100%; border-radius:8px;} 
+        iframe{width:90vw; height:85vh; border: none; border-radius:8px;}
+        .seal {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            border: 5px solid ${sealColor};
+            color: ${sealColor};
+            padding: 12px 24px;
+            font-family: 'Arial Black', sans-serif;
+            font-size: 28px;
+            text-transform: uppercase;
+            transform: rotate(-12deg);
+            background: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 0 15px ${shadowColor};
+            user-select: none;
+        }
+    </style></head><body>`;
+
+    validFiles.forEach(f => {
+        let blobUrl = f;
+        try {
+            if (f.startsWith('data:')) {
+                const parts = f.split(',');
+                const mime = parts[0].match(/:(.*?);/)[1];
+                const bstr = atob(parts[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                const blob = new Blob([u8arr], { type: mime });
+                blobUrl = URL.createObjectURL(blob);
+            }
+        } catch (e) { console.error("Blob yaratishda xatolik:", e); }
+
+        content += `<div class="container">`;
+        if (sealText) {
+            content += `<div class="seal">${sealText}</div>`;
+        }
+        if (f.startsWith('data:image/')) {
+            content += `<img src="${blobUrl}">`;
+        } else if (f.startsWith('data:application/pdf')) {
+            content += `<iframe src="${blobUrl}"></iframe>`;
+        }
+        content += `</div><br>`;
+    });
+
+    content += `</body></html>`;
+    win.document.write(content);
+    win.document.close();
 }
 
 // Delete Student
@@ -1031,16 +1382,20 @@ function handleLogin(event) {
     } else {
         // Try Student Login: Smart detection
         const studentFound = appData.students.find(s => {
-            const login = userIn.toLowerCase();
-            const pass = passIn;
+            const login = userIn.toLowerCase().trim();
+            const pass = passIn.toLowerCase().trim();
+
+            const s_id = (s.student_id || "").toLowerCase().trim();
+            const s_fio = (s.fio || "").toLowerCase().trim();
+            const s_passport = (s.passport_serial || "").toLowerCase().trim();
 
             // Matches Student ID or FIO (fallback)
-            const matchesUser = (s.student_id && s.student_id.toLowerCase() === login) || s.fio.trim().toLowerCase() === login;
+            const matchesUser = s_id === login || s_fio === login;
 
             // Matches Passport or Student ID (fallback) or Internal ID suffix
-            const matchesPass = (s.passport_serial && s.passport_serial === pass) ||
-                (s.student_id && s.student_id === pass) ||
-                String(Math.floor(s.id)).endsWith(pass);
+            const matchesPass = s_passport === pass ||
+                s_id === pass ||
+                String(Math.floor(s.id)).endsWith(passIn.trim());
 
             return matchesUser && matchesPass;
         });
@@ -1081,6 +1436,9 @@ function applyPermissions(role) {
     const navSchedules = document.getElementById('nav-schedules-toggle');
     const navStudent = document.getElementById('nav-student');
     const navBackup = document.getElementById('nav-backup');
+    const navAttendance = document.getElementById('nav-attendance');
+    const navStudentAttendance = document.getElementById('nav-student-attendance');
+    const navStudentAI = document.getElementById('nav-student-ai');
 
     const btnAddStudent = document.getElementById('btnAddStudent');
     const btnExportExcel = document.getElementById('btnExportExcel');
@@ -1088,35 +1446,56 @@ function applyPermissions(role) {
 
     const userMgmtCard = document.getElementById('userManagementCard');
     const dangerZoneCard = document.getElementById('dangerZoneCard');
-
-    // Default: Show All
-    [navDashboard, navList, navSettings, navAnalysis, navSchedules, navBackup].forEach(el => {
-        if (el) el.style.display = 'flex';
-    });
-    if (navBackup) navBackup.style.display = 'block';
-    if (navStudent) navStudent.style.display = 'none';
-    const navUpdates = document.getElementById('nav-updates');
-    if (navUpdates) navUpdates.style.display = 'flex';
-
-    updateUpdatesBadge();
+    const btnAdminAddCert = document.getElementById('btnAdminAddCert');
 
     const dToggle = document.getElementById('nav-dashboard-toggle');
     const navU = document.getElementById('nav-users');
     const navS = document.getElementById('nav-specialties');
     const navG = document.getElementById('nav-gifted');
+    const navUpdates = document.getElementById('nav-updates');
 
-    if (role === 'admin' || role === 'operator') {
+    // Default: Show All for Admins
+    [navDashboard, navList, navSettings, navAnalysis, navSchedules, navBackup, navAttendance, navUpdates].forEach(el => {
+        if (el) el.style.display = 'flex';
+    });
+    if (navBackup) navBackup.style.display = 'block';
+    if (navStudent) navStudent.style.display = 'none';
+    if (btnAdminAddCert) btnAdminAddCert.style.display = 'block';
+
+    updateUpdatesBadge();
+
+    // Reset Tab Labels
+    const pTab = document.getElementById('sub-tab-pending');
+    const aTab = document.getElementById('sub-tab-approved');
+    const rTab = document.getElementById('sub-tab-rejected');
+    if (pTab) pTab.innerHTML = '<i class="fas fa-clock"></i> Arizalar';
+    if (aTab) aTab.innerHTML = '<i class="fas fa-check-circle"></i> Tasdiqlanganlar';
+    if (rTab) rTab.innerHTML = '<i class="fas fa-times-circle"></i> Bekor qilinganlar';
+
+    if (role === 'admin' || role === 'operator' || role === 'registrator') {
         if (dToggle) dToggle.style.display = 'flex';
         if (navU) navU.style.display = (role === 'admin' ? 'flex' : 'none');
         if (navS) navS.style.display = 'flex';
         if (navG) navG.style.display = 'flex';
 
-        if (role === 'operator') {
+        if (role === 'operator' || role === 'registrator') {
             if (navSettings) navSettings.style.display = 'none';
             if (navBackup) navBackup.style.display = 'none';
             if (userMgmtCard) userMgmtCard.style.display = 'none';
             if (dangerZoneCard) dangerZoneCard.style.display = 'none';
         }
+    } else if (role === 'tutor') {
+        // Tutor ONLY sees Attendance
+        [dToggle, navSettings, navBackup, navAnalysis, navSchedules, navUpdates, navList, navG, navU, navS].forEach(el => {
+            if (el) el.style.display = 'none';
+        });
+        if (navAttendance) navAttendance.style.display = 'flex';
+        if (btnAdminAddCert) btnAdminAddCert.style.display = 'none';
+
+        // Override labels for Tutor
+        if (pTab) pTab.innerHTML = '<i class="fas fa-clock"></i> Kelib tushgan';
+        if (aTab) aTab.innerHTML = '<i class="fas fa-paper-plane"></i> Yuborilgan';
+        if (rTab) rTab.innerHTML = '<i class="fas fa-times-circle"></i> Qaytarilgan';
     } else if (role === 'operator2') {
         // Limited: Only Gifted Children
         if (dToggle) dToggle.style.display = 'flex';
@@ -1124,36 +1503,36 @@ function applyPermissions(role) {
         if (navS) navS.style.display = 'none';
         if (navG) navG.style.display = 'flex';
 
-        [navList, navSettings, navAnalysis, navSchedules, navBackup, navUpdates].forEach(el => {
+        [navList, navSettings, navAnalysis, navSchedules, navBackup, navUpdates, navDashboard].forEach(el => {
             if (el) el.style.display = 'none';
         });
     } else {
-        // Student and Viewer
+        // Student, Viewer and Others
         if (dToggle) dToggle.style.display = 'none';
 
-        [navSettings, navBackup, navUpdates, navS, navU, navG].forEach(el => {
+        // Hide all admin/operator sections by default
+        [navSettings, navBackup, navUpdates, navS, navU, navG, navDashboard, navList, navAnalysis, navSchedules, navAttendance].forEach(el => {
             if (el) el.style.display = 'none';
         });
 
         if (role === 'student') {
-            [navDashboard, navList, navAnalysis, navSchedules].forEach(el => { if (el) el.style.display = 'none'; });
             if (navStudent) navStudent.style.display = 'flex';
+            if (navStudentAttendance) navStudentAttendance.style.display = 'flex';
+            if (navStudentAI) navStudentAI.style.display = 'flex';
             if (document.getElementById('nav-student-gifted-toggle')) document.getElementById('nav-student-gifted-toggle').style.display = 'flex';
-        } else {
-            // Admin, Operator, Viewer
-            if (navStudent) navStudent.style.display = 'none';
-            if (document.getElementById('nav-student-gifted-toggle')) document.getElementById('nav-student-gifted-toggle').style.display = 'none';
+        } else if (role === 'viewer') {
+            // Viewers can see Dashboard and List, but not add/edit
+            if (navDashboard) navDashboard.style.display = 'flex';
+            if (navList) navList.style.display = 'flex';
+            if (navAttendance) navAttendance.style.display = 'flex';
 
-            if (role === 'viewer') {
-                if (btnAddStudent) btnAddStudent.style.display = 'none';
-                if (btnExportExcel) btnExportExcel.style.display = 'none';
-                if (btnImportExcel) btnImportExcel.style.display = 'none';
-                if (dangerZoneCard) dangerZoneCard.style.display = 'none';
-            }
+            if (btnAddStudent) btnAddStudent.style.display = 'none';
+            if (btnExportExcel) btnExportExcel.style.display = 'none';
+            if (btnImportExcel) btnImportExcel.style.display = 'none';
+            if (dangerZoneCard) dangerZoneCard.style.display = 'none';
         }
     }
 }
-
 function checkAdminVisibility() {
     const role = sessionStorage.getItem('currentRole');
     const name = sessionStorage.getItem('currentUser');
@@ -1161,7 +1540,7 @@ function checkAdminVisibility() {
 
     if (adminLink) {
         // Only Admin or Operator 1 can see Admin Panel
-        if (role === 'admin' || role === 'administrator' || name === 'Operator 1') {
+        if (role === 'admin' || role === 'administrator' || role === 'registrator' || name === 'Operator 1') {
             adminLink.style.display = 'flex';
         } else {
             adminLink.style.display = 'none';
@@ -2081,4 +2460,887 @@ async function takeStudentTicket(service) {
     });
 
     loadStudentQueue();
+}
+
+// --- DAVOMAT STATUSI (CERTIFICATES) SYSTEM ---
+
+function calculateDays(start, end) {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diffTime = Math.abs(e - s);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
+}
+
+function getStudentApprovedDays(studentId) {
+    return (appData.certificates || [])
+        .filter(c => c.studentId == studentId && c.status === 'approved')
+        .reduce((sum, c) => sum + (c.days || 0), 0);
+}
+
+function checkDateOverlap(studentId, start, end, excludeId = null) {
+    const s2 = new Date(start);
+    const e2 = new Date(end);
+
+    return (appData.certificates || []).some(c => {
+        if (c.studentId != studentId) return false;
+        if (c.id === excludeId) return false;
+        if (c.status === 'rejected') return false; // Rejected certs don't count for overlap
+
+        const s1 = new Date(c.startDate);
+        const e1 = new Date(c.endDate);
+
+        // Overlap logic: (Start1 <= End2) AND (Start2 <= End1)
+        return (s1 <= e2 && s2 <= e1);
+    });
+}
+
+function openStudentAddCertModal() {
+    document.getElementById('studentAddCertModal').style.display = 'flex';
+}
+
+function closeStudentAddCertModal() {
+    document.getElementById('studentAddCertModal').style.display = 'none';
+    document.getElementById('studentAddCertForm').reset();
+}
+
+async function saveStudentNewCert(event) {
+    event.preventDefault();
+    const studentId = sessionStorage.getItem('studentId');
+    if (!studentId) return alert("Sessiya topilmadi!");
+
+    const start = document.getElementById('studentAddCertStart').value;
+    const end = document.getElementById('studentAddCertEnd').value;
+    const comment = document.getElementById('studentAddCertComment').value;
+    const fileInput = document.getElementById('studentAddCertFiles');
+    const files = [];
+
+    if (fileInput.files.length > 5) {
+        return alert("Maksimal 5 ta fayl yuklash mumkin!");
+    }
+
+    // New Overlap Restriction
+    if (checkDateOverlap(studentId, start, end)) {
+        return alert("Xatolik: Belgilangan sanalar uchun sizda allaqachon ma'lumotnoma mavjud (kutilayotgan yoki tasdiqlangan)!");
+    }
+
+    // Business Rule: 10 day limit from end date
+    const today = new Date();
+    const endDateObj = new Date(end);
+    const diffDays = (today - endDateObj) / (1000 * 60 * 60 * 24);
+    if (diffDays > 10) {
+        alert("Xatolik: Ma'lumotnoma tugash sanasidan 10 kundan ko'p vaqt o'tgan. Tizim qabul qilmaydi.");
+        return;
+    }
+
+    showLoading("Arizani yuborilmoqda...");
+
+    try {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            const data = await getBase64(fileInput.files[i]);
+            files.push(data);
+        }
+
+        const days = calculateDays(start, end);
+        const timestamp = new Date().toISOString();
+
+        const cert = {
+            id: Date.now(),
+            studentId: studentId,
+            startDate: start,
+            endDate: end,
+            days: days,
+            file: files[0] || '', // Backward compatibility
+            files: files,
+            comment: comment,
+            status: 'pending',
+            createdBy: 'student',
+            isWarning: false,
+            timestamp: timestamp
+        };
+
+        appData.certificates.push(cert);
+        await saveToServer();
+
+        closeStudentAddCertModal();
+        hideLoading("Muvaffaqiyatli yuborildi!");
+        loadStudentCertificates();
+
+    } catch (error) {
+        console.error("Upload Error:", error);
+        hideLoading();
+        alert("Xatolik yuz berdi!");
+    }
+}
+
+function loadStudentCertificates() {
+    const studentId = sessionStorage.getItem('studentId');
+    const tbody = document.getElementById('studentCertificatesTableBody');
+    if (!tbody) return;
+
+    const certs = (appData.certificates || []).filter(c => c.studentId == studentId);
+
+    // Update Stats
+    const approved = certs.filter(c => c.status === 'approved');
+    const totalDays = approved.reduce((sum, c) => sum + c.days, 0);
+    document.getElementById('totalJustifiedDays').innerText = `${totalDays} kun`;
+
+    const warnBox = document.getElementById('attendance-warning-box');
+    if (totalDays > 30) {
+        warnBox.style.display = 'flex';
+        document.getElementById('lastAttendanceStatus').innerText = 'Chetlatish Xavfi';
+        document.getElementById('lastAttendanceStatus').style.color = '#ef4444';
+    } else {
+        warnBox.style.display = 'none';
+        document.getElementById('lastAttendanceStatus').innerText = 'Normal';
+        document.getElementById('lastAttendanceStatus').style.color = '#10b981';
+    }
+
+    if (certs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">Hozircha ma\'lumotnomalar yo\'q</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = certs.reverse().map(c => {
+        let statusText = 'Kutilmoqda';
+        let statusColor = 'bg-blue'; // Default blue
+
+        if (c.status === 'approved') {
+            statusText = 'Tasdiqlangan';
+            statusColor = 'bg-green';
+        } else if (c.status === 'rejected') {
+            statusText = 'Bekor qilingan';
+            statusColor = 'bg-red';
+        } else {
+            // Pending status logic
+            const submittedAt = new Date(c.timestamp || c.id);
+            const hoursPassed = (new Date() - submittedAt) / (1000 * 60 * 60);
+
+            if (hoursPassed < 24) {
+                statusText = 'Yuborilgan';
+                statusColor = 'bg-blue';
+            } else {
+                statusText = 'Ko\'rib chiqilmoqda';
+                statusColor = 'bg-orange'; // We'll use a style for orange or just inline it
+            }
+        }
+
+        const izoh = c.status === 'rejected' ? (c.rejectionReason || '-') : (c.comment || '-');
+        const isApproved = c.status === 'approved';
+
+        return `
+            <tr>
+                <td>${c.startDate} - ${c.endDate}</td>
+                <td>${c.days} kun</td>
+                <td>${c.createdBy === 'admin' ? '<span class="badge bg-purple" style="color:white; padding:2px 8px; border-radius:10px;">Admin</span>' : '<span class="badge bg-gray" style="background:#64748b; color:white; padding:2px 8px; border-radius:10px;">Talaba</span>'}</td>
+                <td>
+                    <span class="badge ${statusColor}" style="color:white; padding:2px 8px; border-radius:10px; ${statusColor === 'bg-orange' ? 'background:#f59e0b;' : ''}">${statusText}</span>
+                </td>
+                <td>
+                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        ${(isApproved || c.status === 'rejected') ? `
+                            <button class="view-btn" style="background:${isApproved ? '#f0fdf4' : '#fef2f2'}; color:${isApproved ? '#16a34a' : '#ef4444'}; border-color:${isApproved ? '#bbf7d0' : '#fecaca'}; min-width:100px; justify-content:center;" onclick="downloadCert('${c.id}')" title="${isApproved ? 'Tasdiqlangan' : 'Rad etilgan'} hujjatni yuklash">
+                                <i class="fas fa-download"></i> Yuklash
+                            </button>
+                        ` : `
+                            <button class="view-btn" style="min-width:100px; justify-content:center;" onclick="viewCert('${c.id}')" title="Ko'rish">
+                                <i class="fas fa-eye"></i> Ko'rish
+                            </button>
+                        `}
+                        
+                        ${(c.status === 'rejected' && c.rejectedByRole === 'tutor') ? `
+                            <button class="view-btn" style="background:#fff7ed; color:#ea580c; border-color:#fed7aa; min-width:40px;" onclick="editCert('${c.id}')" title="Tahrirlash">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="view-btn" style="background:#fef2f2; color:#ef4444; border-color:#fecaca; min-width:40px;" onclick="deleteCert('${c.id}')" title="O'chirish">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+                <td>${izoh}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function loadAdminCertificates() {
+    const pendingTbody = document.getElementById('adminCertificatesPendingTableBody');
+    const approvedTbody = document.getElementById('adminCertificatesApprovedTableBody');
+    const rejectedTbody = document.getElementById('adminCertificatesRejectedTableBody');
+
+    if (!pendingTbody || !approvedTbody || !rejectedTbody) return;
+
+    const search = document.getElementById('attendanceSearchInput').value.toLowerCase();
+    let allCerts = appData.certificates || [];
+
+    // Filter by search (student name)
+    if (search) {
+        allCerts = allCerts.filter(c => {
+            const student = appData.students.find(s => s.id == c.studentId);
+            return student && student.fio.toLowerCase().includes(search);
+        });
+    }
+
+    // --- CALCULATE SUMMARY STATS ---
+    const currentRole = sessionStorage.getItem('currentRole');
+    const allCertsForStats = appData.certificates || [];
+
+    let pendingCerts, approvedCerts, rejectedCerts;
+
+    if (currentRole === 'tutor') {
+        pendingCerts = allCerts.filter(c => c.status === 'pending'); // Kelib tushgan
+        approvedCerts = allCerts.filter(c => c.status === 'checked'); // Yuborilgan
+        rejectedCerts = allCerts.filter(c => c.status === 'rejected'); // Qaytarilgan
+    } else {
+        pendingCerts = allCerts.filter(c => c.status === 'pending' || c.status === 'checked');
+        approvedCerts = allCerts.filter(c => c.status === 'approved');
+        rejectedCerts = allCerts.filter(c => c.status === 'rejected');
+    }
+
+    const totalApprovedDaysAcrossAll = allCertsForStats
+        .filter(c => c.status === 'approved')
+        .reduce((sum, c) => sum + (c.days || 0), 0);
+
+    // Total unique students who submitted ANY certificate
+    const uniqueStudentsSet = new Set(allCertsForStats.map(c => c.studentId));
+    const uniqueStudentCount = uniqueStudentsSet.size;
+
+    // Calculate unique students at risk (those over 30 days)
+    const studentsWithApprovedDays = {};
+    allCertsForStats.filter(c => c.status === 'approved').forEach(c => {
+        studentsWithApprovedDays[c.studentId] = (studentsWithApprovedDays[c.studentId] || 0) + c.days;
+    });
+    const riskCount = Object.values(studentsWithApprovedDays).filter(d => d > 30).length;
+
+    // Update stats in UI
+    if (document.getElementById('adminAttendancePendingCount')) {
+        document.getElementById('adminAttendancePendingCount').innerText = pendingCerts.length;
+        document.getElementById('adminAttendanceTotalDays').innerText = `${totalApprovedDaysAcrossAll} kun`;
+        document.getElementById('adminAttendanceRiskCount').innerText = `${riskCount} ta`;
+        if (document.getElementById('adminAttendanceStudentCount')) {
+            document.getElementById('adminAttendanceStudentCount').innerText = uniqueStudentCount;
+        }
+    }
+
+    // Helper to render a row
+    const renderCertRow = (c, type) => {
+        const student = appData.students.find(s => s.id == c.studentId);
+        const name = student ? student.fio : 'Noma\'lum';
+
+        // Total approved days for this student
+        const studentApprovedTotal = (appData.certificates || [])
+            .filter(cert => cert.studentId == c.studentId && cert.status === 'approved')
+            .reduce((sum, cert) => sum + cert.days, 0);
+        const daysLabel = studentApprovedTotal > 0 ? ` (${studentApprovedTotal} kun)` : '';
+
+        const currentRole = sessionStorage.getItem('currentRole');
+        const roleLabel = c.status === 'checked' ? '<span class="badge" style="background:#0284c7; color:white; font-size:10px; margin-left:5px;">Tyutor tekshirgan</span>' : '';
+
+        let actions;
+        if (currentRole === 'registrator' && c.status === 'approved') {
+            const hemisColor = c.hemisStatus === 'posted' ? '#10b981' : '#64748b';
+            const hemisText = c.hemisStatus === 'posted' ? 'Joylangan' : 'Joylanmagan';
+            actions = `
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <button class="btn-primary" style="background:${hemisColor} !important; border-color:${hemisColor} !important; font-size:10px; padding:4px 6px; width:auto; height:auto; line-height:1;" onclick="toggleHemisStatus('${c.id}')">
+                        HEMIS: ${hemisText}
+                    </button>
+                    <button class="btn-primary" style="background:#14b8a6; padding:4px 8px;" onclick="downloadCert('${c.id}')" title="Yuklash"><i class="fas fa-download"></i></button>
+                    <button class="btn-primary" style="background:#3b82f6; padding:4px 8px;" onclick="viewCert('${c.id}')" title="Ko'rish"><i class="fas fa-eye"></i></button>
+                </div>
+            `;
+        } else if (currentRole === 'tutor') {
+            actions = `
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${c.status === 'pending' ? `
+                        <button class="btn-primary" style="background:#6366f1; padding:4px 8px;" onclick="updateCertStatus('${c.id}', 'checked')" title="Registratorga jo'natish">
+                            <i class="fas fa-paper-plane"></i> Jo'natish
+                        </button>
+                    ` : (c.status === 'checked' ? '<span style="color:#64748b; font-size:12px;">Jo\'natilgan</span>' : '')}
+                    
+                    ${(c.status === 'pending' || c.status === 'checked') ? `
+                        <button class="btn-primary" style="background:#ef4444; padding:4px 8px;" onclick="updateCertStatus('${c.id}', 'rejected')" title="Qaytarish"><i class="fas fa-times"></i></button>
+                    ` : ''}
+
+                    <button class="btn-primary" style="background:#3b82f6; padding:4px 8px;" onclick="viewCert('${c.id}')" title="Ko'rish"><i class="fas fa-eye"></i></button>
+                </div>
+            `;
+        } else {
+            actions = `
+                <div style="display:flex; gap:5px;">
+                    ${(c.status === 'pending' || c.status === 'checked') ? `
+                        ${(currentRole === 'registrator' && c.status === 'pending') ? `
+                            ${((Date.now() - new Date(c.timestamp).getTime()) > (2 * 24 * 60 * 60 * 1000)) ? `
+                                <button class="btn-primary" style="background:#10b981; padding:4px 8px;" onclick="updateCertStatus('${c.id}', 'approved')" title="Tyutor tekshirmadi, lekin 2 kun o'tdi - Tasdiqlash"><i class="fas fa-check"></i></button>
+                            ` : `
+                                <button class="btn-primary" style="background:#94a3b8; padding:4px 8px; cursor:not-allowed;" onclick="alert('Ushbu ariza hali Tyutor tomonidan tekshirilmagan. 2 kundan keyin tasdiqlashingiz mumkin.')" title="Tyutor tekshiruvi kutilmoqda"><i class="fas fa-clock"></i></button>
+                            `}
+                        ` : `
+                            <button class="btn-primary" style="background:#10b981; padding:4px 8px;" onclick="updateCertStatus('${c.id}', 'approved')" title="Tasdiqlash"><i class="fas fa-check"></i></button>
+                        `}
+                        <button class="btn-primary" style="background:#ef4444; padding:4px 8px;" onclick="updateCertStatus('${c.id}', 'rejected')" title="Rad etish"><i class="fas fa-times"></i></button>
+                    ` : ''}
+                    <button class="btn-primary" style="background:#3b82f6; padding:4px 8px;" onclick="viewCert('${c.id}')" title="Ko'rish"><i class="fas fa-eye"></i></button>
+                    <button class="btn-primary" style="background:#14b8a6; padding:4px 8px;" onclick="downloadCert('${c.id}')" title="Yuklash"><i class="fas fa-download"></i></button>
+                    <button class="btn-primary" style="background:#f59e0b; padding:4px 8px;" onclick="editCert('${c.id}')" title="Tahrirlash"><i class="fas fa-edit"></i></button>
+                    <button class="btn-primary" style="background:#991b1b; padding:4px 8px;" onclick="deleteCert('${c.id}')" title="O'chirish"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `;
+        }
+
+        if (type === 'pending') {
+            return `
+                <tr id="row-${c.id}" ${c.isWarning ? 'style="background:#fef2f2;"' : ''}>
+                    <td><strong>${name}${daysLabel}${roleLabel}</strong></td>
+                    <td>${c.startDate} - ${c.endDate}</td>
+                    <td>${c.days} kun</td>
+                    <td>${c.createdBy === 'admin' ? '<span class="badge bg-purple" style="color:white; padding:2px 8px; border-radius:10px; background:#8b5cf6;">Admin</span>' : '<span class="badge bg-gray" style="background:#64748b; color:white; padding:2px 8px; border-radius:10px;">Talaba</span>'}</td>
+                    <td>${new Date(c.timestamp).toLocaleString()}</td>
+                    <td onclick="event.stopPropagation()">${actions}</td>
+                </tr>
+            `;
+        } else if (type === 'approved') {
+            return `
+                <tr id="row-${c.id}" class="accordion-header-row" onclick="toggleCertAccordion('${c.id}')" style="cursor:pointer; background:#f0fdf4;">
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="fas fa-chevron-right rotate-icon" id="icon-${c.id}"></i>
+                            <strong>${name}${daysLabel}</strong>
+                        </div>
+                    </td>
+                    <td>${c.startDate} - ${c.endDate}</td>
+                    <td>${c.days} kun</td>
+                    <td>${c.createdBy === 'admin' ? '<span class="badge bg-purple" style="color:white; padding:2px 8px; border-radius:10px; background:#8b5cf6;">Admin</span>' : '<span class="badge bg-gray" style="background:#64748b; color:white; padding:2px 8px; border-radius:10px;">Talaba</span>'}</td>
+                    <td>${new Date(c.timestamp).toLocaleDateString()}</td>
+                    <td onclick="event.stopPropagation()">${actions}</td>
+                </tr>
+                <tr id="detail-${c.id}" class="expanded-row" style="display:none;">
+                    <td colspan="5">
+                        <div class="detail-content">
+                            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:15px;">
+                                <div style="background:white; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+                                    <p><strong>Izoh:</strong> ${c.comment || 'Izoh yo\'q'}</p>
+                                    <p><strong>Guruh:</strong> ${student ? student.specialty || '-' : '-'}</p>
+                                </div>
+                                <div style="background:white; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+                                    <p><strong>Barcha hujjatlar tarixi:</strong></p>
+                                    <div style="font-size:12px;">
+                                        ${(appData.certificates || []).filter(ac => ac.studentId == c.studentId && ac.status === 'approved').map(ac => `
+                                            <div style="padding:4px 0; border-bottom:1px solid #f1f5f9;">
+                                                ${ac.startDate} - ${ac.endDate} (${ac.days} kun)
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } else {
+            return `
+                <tr id="row-${c.id}" style="background:#fef2f2;">
+                    <td><strong>${name}</strong></td>
+                    <td>${c.startDate} - ${c.endDate}</td>
+                    <td>${c.days} kun</td>
+                    <td>${c.createdBy === 'admin' ? '<span class="badge bg-purple" style="color:white; padding:2px 8px; border-radius:10px; background:#8b5cf6;">Admin</span>' : '<span class="badge bg-gray" style="background:#64748b; color:white; padding:2px 8px; border-radius:10px;">Talaba</span>'}</td>
+                    <td style="color:#ef4444; font-size:12px;"><b>Sabab:</b> ${c.rejectionReason || 'Sabab ko\'rsatilmagan'}</td>
+                    <td onclick="event.stopPropagation()">${actions}</td>
+                </tr>
+            `;
+        }
+    };
+
+    const sortFn = (a, b) => new Date(b.timestamp) - new Date(a.timestamp);
+
+    pendingTbody.innerHTML = pendingCerts.length ? pendingCerts.sort(sortFn).map(c => renderCertRow(c, 'pending')).join('') : '<tr><td colspan="5" style="text-align:center; color:#888;">Yangi arizalar yo\'q</td></tr>';
+    approvedTbody.innerHTML = approvedCerts.length ? approvedCerts.sort(sortFn).map(c => renderCertRow(c, 'approved')).join('') : '<tr><td colspan="5" style="text-align:center; color:#888;">Tasdiqlanganlar yo\'q</td></tr>';
+    rejectedTbody.innerHTML = rejectedCerts.length ? rejectedCerts.sort(sortFn).map(c => renderCertRow(c, 'rejected')).join('') : '<tr><td colspan="5" style="text-align:center; color:#888;">Rad etilganlar yo\'q</td></tr>';
+
+    // Call switchAttendanceSubTab only if no tab is currently active
+    const activeTab = document.querySelector('.sub-tab-btn.active');
+    if (!activeTab) {
+        switchAttendanceSubTab('pending');
+    }
+}
+
+function toggleCertAccordion(id) {
+    const detailRow = document.getElementById(`detail-${id}`);
+    const icon = document.getElementById(`icon-${id}`);
+
+    if (!detailRow) return;
+
+    if (detailRow.style.display === 'none') {
+        detailRow.style.display = 'table-row';
+        if (icon) icon.classList.add('active');
+    } else {
+        detailRow.style.display = 'none';
+        if (icon) icon.classList.remove('active');
+    }
+}
+
+function switchAttendanceSubTab(tabName) {
+    // Hide all contents
+    document.querySelectorAll('.attendance-sub-content').forEach(el => el.style.display = 'none');
+    // Remove active class from all buttons
+    document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active'));
+
+    // Show selected content
+    const content = document.getElementById(`sub-content-${tabName}`);
+    if (content) content.style.display = 'block';
+
+    // Add active class to button
+    const btn = document.getElementById(`sub-tab-${tabName}`);
+    if (btn) btn.classList.add('active');
+}
+
+async function updateCertStatus(id, status) {
+    const cert = appData.certificates.find(c => c.id == id);
+    if (!cert) return;
+
+    const currentRole = sessionStorage.getItem('currentRole');
+
+    if (status === 'rejected') {
+        const reason = prompt("Rad etish sababini kiriting:");
+        if (reason === null) return; // Cancelled
+        cert.rejectionReason = reason || "Ma'lumotnoma talabga javob bermaydi";
+        cert.rejectedByRole = currentRole; // Record who rejected it
+    } else if (status === 'approved') {
+        if (currentRole === 'registrator' && cert.status === 'pending') {
+            const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
+            const timePassed = Date.now() - new Date(cert.timestamp).getTime();
+            if (timePassed < twoDaysInMs) {
+                alert("Ushbu arizani tasdiqlash uchun Tyutor tekshiruvi kutilishi kerak (yoki yuborilganidan so'ng 2 kun o'tishi lozim).");
+                return;
+            }
+        }
+        delete cert.rejectionReason;
+        delete cert.rejectedByRole;
+    } else {
+        delete cert.rejectedByRole;
+    }
+
+    cert.status = status;
+    await saveToServer();
+    loadAdminCertificates();
+}
+
+async function toggleHemisStatus(id) {
+    const cert = appData.certificates.find(c => c.id == id);
+    if (!cert) return;
+
+    cert.hemisStatus = cert.hemisStatus === 'posted' ? 'not_posted' : 'posted';
+    await saveToServer();
+    loadAdminCertificates();
+}
+
+function deleteCert(id) {
+    if (!confirm("Haqiqatan ham ushbu ma'lumotnomani o'chirmoqchimisiz?")) return;
+    appData.certificates = appData.certificates.filter(c => c.id != id);
+    saveToServer().then(() => {
+        loadAdminCertificates();
+        if (sessionStorage.getItem('currentRole') === 'student') loadStudentCertificates();
+    });
+}
+
+function editCert(id) {
+    const cert = appData.certificates.find(c => c.id == id);
+    if (!cert) return;
+
+    document.getElementById('editCertId').value = cert.id;
+    document.getElementById('editCertStartDate').value = cert.startDate;
+    document.getElementById('editCertEndDate').value = cert.endDate;
+    document.getElementById('editCertRejectionReason').value = cert.rejectionReason || '';
+    document.getElementById('editCertComment').value = cert.comment || '';
+
+    document.getElementById('editCertModal').style.display = 'flex';
+}
+
+function closeEditCertModal() {
+    document.getElementById('editCertModal').style.display = 'none';
+}
+
+async function saveEditedCert(event) {
+    event.preventDefault();
+    const id = document.getElementById('editCertId').value;
+    const cert = appData.certificates.find(c => c.id == id);
+    if (!cert) return;
+
+    const start = document.getElementById('editCertStartDate').value;
+    const end = document.getElementById('editCertEndDate').value;
+    const reason = document.getElementById('editCertRejectionReason').value;
+    const comment = document.getElementById('editCertComment').value;
+
+    cert.startDate = start;
+    cert.endDate = end;
+    cert.days = calculateDays(start, end);
+    cert.rejectionReason = reason;
+    cert.comment = comment;
+
+    await saveToServer();
+    closeEditCertModal();
+    loadAdminCertificates();
+    if (sessionStorage.getItem('currentRole') === 'student') loadStudentCertificates();
+    alert("Ma'lumotlar yangilandi.");
+}
+
+// --- ADMIN MANUAL CERTIFICATE ENTRY ---
+let selectedAdminStudentIds = [];
+
+function openAdminAddCertModal() {
+    selectedAdminStudentIds = [];
+    renderSelectedStudentTags();
+    document.getElementById('adminAddCertStudentSearch').value = '';
+    document.getElementById('adminStudentSearchResults').style.display = 'none';
+    document.getElementById('adminAddCertModal').style.display = 'flex';
+}
+
+function closeAdminAddCertModal() {
+    document.getElementById('adminAddCertModal').style.display = 'none';
+    document.getElementById('adminAddCertForm').reset();
+    selectedAdminStudentIds = [];
+    renderSelectedStudentTags();
+}
+
+function filterAdminAddCertStudents() {
+    const search = document.getElementById('adminAddCertStudentSearch').value.toLowerCase();
+    const resultsDiv = document.getElementById('adminStudentSearchResults');
+    const students = appData.students || [];
+
+    if (!search) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    const filtered = students.filter(s =>
+        (s.fio.toLowerCase().includes(search) ||
+            (s.student_id && s.student_id.toLowerCase().includes(search))) &&
+        !selectedAdminStudentIds.includes(s.id.toString())
+    );
+
+    if (filtered.length > 0) {
+        resultsDiv.innerHTML = filtered.slice(0, 10).map(s => {
+            const approvedDays = getStudentApprovedDays(s.id);
+            const isOverLimit = approvedDays >= 30;
+            const style = isOverLimit ? 'color: #ef4444; font-weight: bold;' : '';
+            return `
+                <div class="search-result-item" onclick="${isOverLimit ? "alert('Bu talabaning sababli kunlari 30 kundan oshgan! Qo\\'shimcha ma\\'lumotnoma kiritish taqiqlanadi.')" : `addStudentToSelection('${s.id}', '${s.fio}')`}" style="${style}">
+                    ${s.fio} (${s.student_id || 'ID yo\'q'}) - ${approvedDays} kun
+                </div>
+            `;
+        }).join('');
+        resultsDiv.style.display = 'block';
+    } else {
+        resultsDiv.innerHTML = '<div class="search-result-item" style="color:#888;">Natija topilmadi</div>';
+        resultsDiv.style.display = 'block';
+    }
+}
+
+function addStudentToSelection(id, name) {
+    if (!selectedAdminStudentIds.includes(id)) {
+        selectedAdminStudentIds.push(id);
+        renderSelectedStudentTags();
+    }
+    document.getElementById('adminAddCertStudentSearch').value = '';
+    document.getElementById('adminStudentSearchResults').style.display = 'none';
+}
+
+function removeStudentFromSelection(id) {
+    selectedAdminStudentIds = selectedAdminStudentIds.filter(sid => sid !== id);
+    renderSelectedStudentTags();
+}
+
+function renderSelectedStudentTags() {
+    const container = document.getElementById('adminSelectedStudentsTags');
+    if (selectedAdminStudentIds.length === 0) {
+        container.innerHTML = '<span style="color: #94a3b8; font-size: 13px;">Hali hech kim tanlanmagan</span>';
+        return;
+    }
+
+    container.innerHTML = selectedAdminStudentIds.map(id => {
+        const student = appData.students.find(s => s.id == id);
+        return `
+            <div class="student-tag">
+                ${student ? student.fio : 'Noma\'lum'}
+                <i class="fas fa-times" onclick="removeStudentFromSelection('${id}')"></i>
+            </div>
+        `;
+    }).join('');
+}
+
+async function saveAdminNewCert(event) {
+    event.preventDefault();
+    const start = document.getElementById('adminAddCertStart').value;
+    const end = document.getElementById('adminAddCertEnd').value;
+    const comment = document.getElementById('adminAddCertComment').value;
+    const fileInput = document.getElementById('adminAddCertFiles');
+
+    if (selectedAdminStudentIds.length === 0) {
+        alert("Iltimos, kamida bitta talabani tanlang!");
+        return;
+    }
+
+    if (fileInput.files.length > 5) {
+        alert("Xatolik: Ko'pi bilan 5 ta fayl yuklash mumkin.");
+        return;
+    }
+
+    showLoading("Ma'lumotlar saqlanmoqda...");
+
+    try {
+        const files = [];
+        for (let i = 0; i < fileInput.files.length; i++) {
+            const compressedBase64 = await compressImage(fileInput.files[i]);
+            files.push(compressedBase64);
+        }
+
+        const days = calculateDays(start, end);
+        const timestamp = new Date().toISOString();
+
+        if (!appData.certificates) appData.certificates = [];
+
+        let hasError = false;
+        const overLimitStudents = [];
+        const overlappingStudents = [];
+
+        // Check limits and overlaps for ALL selected students before saving any
+        for (const studentId of selectedAdminStudentIds) {
+            const student = appData.students.find(s => s.id == studentId);
+            const studentName = student ? student.fio : studentId;
+
+            const totalDays = getStudentApprovedDays(studentId);
+            if (totalDays + days > 30) {
+                overLimitStudents.push(studentName);
+                hasError = true;
+            }
+
+            // New Overlap Restriction for Admin
+            if (checkDateOverlap(studentId, start, end)) {
+                overlappingStudents.push(studentName);
+                hasError = true;
+            }
+        }
+
+        if (hasError) {
+            hideLoading();
+            let errorMessage = "Quyidagi xatolar tufayli ma'lumotnoma saqlanmadi:\n";
+            if (overLimitStudents.length > 0) {
+                errorMessage += `- ${overLimitStudents.join(', ')} uchun jami kunlar 30 kundan oshadi.\n`;
+            }
+            if (overlappingStudents.length > 0) {
+                errorMessage += `- ${overlappingStudents.join(', ')} uchun belgilangan sanalarda allaqachon ma'lumotnoma mavjud.\n`;
+            }
+            alert(errorMessage);
+            return;
+        }
+
+        selectedAdminStudentIds.forEach(studentId => {
+            const cert = {
+                id: Date.now() + Math.floor(Math.random() * 1000), // Unique ID for each
+                studentId: studentId,
+                startDate: start,
+                endDate: end,
+                days: days,
+                file: files[0] || '', // Backward compatibility
+                files: files,
+                comment: comment,
+                status: 'approved', // Admin addition is auto-approved
+                isWarning: false,
+                createdBy: 'admin',
+                timestamp: timestamp
+            };
+            appData.certificates.push(cert);
+        });
+
+        await saveToServer();
+        hideLoading("Muvaffaqiyatli saqlandi!");
+        closeAdminAddCertModal();
+        loadAdminCertificates();
+    } catch (error) {
+        console.error("Save error:", error);
+        hideLoading();
+        alert("Xatolik yuz berdi: " + error.message);
+    }
+}
+
+// Close search results on click outside
+window.addEventListener('click', function (e) {
+    const resultsDiv = document.getElementById('adminStudentSearchResults');
+    const searchInput = document.getElementById('adminAddCertStudentSearch');
+    if (resultsDiv && !resultsDiv.contains(e.target) && e.target !== searchInput) {
+        resultsDiv.style.display = 'none';
+    }
+});
+// --- STUDENT AI ASSISTANT SYSTEM ---
+
+function initStudentAI() {
+    const studentId = sessionStorage.getItem('studentId');
+    if (!studentId) return;
+
+    // Update attendance stat
+    const stats = calculateStudentAttendanceStats(studentId);
+    const aiAttendance = document.getElementById('ai-stat-attendance');
+    if (aiAttendance) {
+        aiAttendance.innerText = stats.totalDays > 25 ? 'Xavfli' : (stats.totalDays > 15 ? 'O\'rtacha' : 'Yaxshi');
+        aiAttendance.style.color = stats.totalDays > 25 ? 'var(--danger-color)' : (stats.totalDays > 15 ? 'var(--warning-color)' : 'var(--success-color)');
+    }
+
+    // Update apps stat - searching in certificates and gifted apps
+    const certsCount = (appData.certificates || []).filter(c => c.studentId == studentId).length;
+    const giftedCount = (appData.gifted_applications || []).filter(a => a.studentId == studentId).length;
+    const aiApps = document.getElementById('ai-stat-apps');
+    if (aiApps) aiApps.innerText = `${certsCount + giftedCount} ta`;
+}
+
+function calculateStudentAttendanceStats(studentId) {
+    const certs = (appData.certificates || []).filter(c => c.studentId == studentId && c.status === 'approved');
+    const totalDays = certs.reduce((sum, c) => sum + (c.days || 0), 0);
+    return { totalDays };
+}
+
+function askAI(question) {
+    document.getElementById('ai-user-input').value = question;
+    sendAIMessage();
+}
+
+function handleAIPress(e) {
+    if (e.key === 'Enter') sendAIMessage();
+}
+
+async function sendAIMessage() {
+    const input = document.getElementById('ai-user-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    appendMessage('user', msg);
+    input.value = '';
+
+    // Simulate AI thinking
+    const chatContainer = document.getElementById('ai-chat-messages');
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'message ai typing';
+    typingMsg.innerText = 'AI o\'ylamoqda...';
+    chatContainer.appendChild(typingMsg);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    setTimeout(() => {
+        if (typingMsg.parentNode) chatContainer.removeChild(typingMsg);
+        const response = processAIRequest(msg);
+        appendMessage('ai', response);
+    }, 1000);
+}
+
+function appendMessage(type, text) {
+    const container = document.getElementById('ai-chat-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${type}`;
+    msgDiv.innerText = text;
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function processAIRequest(query) {
+    const q = query.toLowerCase().trim();
+    const studentId = sessionStorage.getItem('studentId');
+    const student = appData.students.find(s => s.id == studentId || s.student_id == studentId);
+    const name = student ? student.fio.split(' ')[0] : 'Talaba';
+
+    // Helper: Find specialty name
+    const getSpecName = (id) => {
+        const s = appData.specialties.find(sp => sp.id == id || sp.code == id);
+        return s ? s.name : (id || 'Noma\'lum');
+    };
+
+    // --- SYSTEM CONTEXT EXTRACTION ---
+    const certs = (appData.certificates || []).filter(c => c.studentId == studentId);
+    const approvedCerts = certs.filter(c => c.status === 'approved');
+    const pendingCerts = certs.filter(c => c.status === 'pending');
+    const totalDays = approvedCerts.reduce((sum, c) => sum + (c.days || 0), 0);
+    const contests = appData.contests || [];
+    const activeContests = contests.filter(c => !c.endDate || new Date(c.endDate) >= new Date());
+
+    // --- 1. GREETINGS & PERSONALITY ---
+    if (/^(salom|assalom|qalaysan|hayrli|hi|hello|salam)/.test(q)) {
+        return `Assalomu alaykum, ${name}! Men EduDocs AI-man. Tizim bo'yicha yoki boshqa istalgan o'quv masalalari bo'yicha savol beraverishingiz mumkin. Sizga bugun qanday yordam bera olaman?`;
+    }
+
+    if (q.includes('rahmat') || q.includes('tashakkur') || q.includes('zo\'r') || q.includes('rahmat')) {
+        return `Arziydi, ${name}! Har doim xizmatingizdaman. Savollaringiz bo'lsa, men shu yerdaman. 😊`;
+    }
+
+    // --- 2. PERSONAL DATA ---
+    if (q.includes('men haqimda') || q.includes('kimman') || (q.includes('ma\'lumot') && q.includes('profil'))) {
+        if (!student) return "Kechirasiz, profilingizni aniqlay olmadim.";
+        return `Siz: ${student.fio}\n🎓 Yo'nalish: ${getSpecName(student.specialty)}\n📅 Kurs: ${student.year || '4-kurs'}\n🆔 Talaba ID: ${student.student_id}\n\nSizda ${certs.length} ta yuborilgan ariza va ${totalDays} kun tasdiqlangan sabab mavjud.`;
+    }
+
+    // --- 3. ATTENDANCE & WARNINGS ---
+    if (q.includes('davomat') || q.includes('kun') || q.includes('qancha') || q.includes('qoldim') || q.includes('dars')) {
+        if (totalDays === 0) return `Hurmatli ${name}, hozircha sizda tasdiqlangan sababli kunlar mavjud emas. Agar dars qoldirgan bo'lsangiz, vaqtida ma'lumotnoma topshirishni unutmang.`;
+
+        let report = `Sizning jami tasdiqlangan sababli kunlaringiz: ${totalDays} kun.\n`;
+        if (pendingCerts.length > 0) report += `Shuningdek, ${pendingCerts.length} ta arizangiz kutilmoqda.\n`;
+
+        if (totalDays > 25) {
+            report += "⚠️ DIQQAT: Sababli kunlaringiz 30 kunga yaqinlashmoqda. 30 kundan oshib ketsa, universitetdan chetlatilish ehtimoli bor. Ehtiyot bo'ling!";
+        } else {
+            report += "✅ Holatingiz hozircha xavfsiz zonada.";
+        }
+        return report;
+    }
+
+    // --- 4. CERTIFICATES & STATUS ---
+    if (q.includes('ariza') || q.includes('ma\'lumotnoma') || q.includes('status') || q.includes('holat')) {
+        if (certs.length === 0) return "Siz hali birorta ham ma'lumotnoma yubormagansiz. Uni 'Davomat statusi' bo'limida amalga oshirishingiz mumkin.";
+
+        const last = certs[certs.length - 1];
+        let statusText = last.status === 'pending' ? 'Kutilmoqda (Tekshiruvda)' : (last.status === 'approved' ? 'Tasdiqlangan' : 'Rad etilgan');
+
+        return `Sizda jami ${certs.length} ta ariza mavjud.\n\nOxirgi arizangiz ma'lumotlari:\n📅 Sanalar: ${last.startDate} - ${last.endDate}\n📊 Holati: ${statusText}\n${last.rejectionReason ? '❌ Sababi: ' + last.rejectionReason : ''}\n\nBarcha arizalarni jadvaldan ko'rishingiz mumkin.`;
+    }
+
+    // --- 5. EXAMS & PERMISSIONS ---
+    if (q.includes('imtihon') || q.includes('yakuniy') || q.includes('nazorat') || q.includes('ruxsat')) {
+        return `Imtihonlarga ruxsat olishingiz uchun sababsiz dars qoldirmaslik va ma'lumotnomalarni o'z vaqtida topshirish kerak. 100% ruxsatni "Jadvallar -> Imtihon jadvali" bo'limidan yoki dekanatdan aniqlashingiz mumkin. Hozircha davomatingiz ${totalDays > 25 ? 'xavfli' : 'yaxshi'} holatda.`;
+    }
+
+    // --- 6. GIFTED & OPPORTUNITIES ---
+    if (q.includes('tanlov') || q.includes('iqtidor') || q.includes('yutuq') || q.includes('pul') || q.includes('stipendiya')) {
+        if (activeContests.length > 0) {
+            return `Hozirda tizimda ${activeContests.length} ta faol tanlov bor! Eng muhimi: "${activeContests[0].title}". Shoshiling, ro'yxatdan o'tish tugash muddati: ${activeContests[0].endDate}. Bu siz uchun yaxshi imkoniyat!`;
+        }
+        return "Hozirda faol tanlovlar yo'q, lekin tez-tez 'Iqtidorli bolalar' bo'limini tekshirib turing. O'z yutuqlaringizni ariza sifatida yuborib qo'yishingiz mumkin.";
+    }
+
+    // --- 7. GENERAL KNOWLEDGE / ADVICE ---
+    if (q.includes('nima qilsam') || q.includes('maslahat') || q.includes('qanday')) {
+        if (q.includes('imtihon')) return "Imtihonlarga tayyorlanish uchun dars materiallarini qayta ko'rib chiqing va eng asosiysi - davomatingizga e'tibor bering.";
+        if (q.includes('stipendiya')) return "Stipendiyani oshirish uchun fanlardan faqat 5 bahoga o'qish va ilmiy-ijodiy tanlovlarda faol bo'lish kerak. EduDocs-dagi 'Iqtidorli bolalar' bo'limi sizga yordam beradi.";
+        return "Sizga tizim hamda o'qish bo'yicha maslahatlar bera olaman. Aniqroq so'rasangiz, batafsil javob beraman.";
+    }
+
+    // --- 8. UNIVERSITY RULES (MOCK) ---
+    if (q.includes('qoida') || q.includes('nizom') || q.includes('tartib')) {
+        return "Universitet qoidalariga ko'ra, semestr davomida 30 kalendar kunidan ortiq sababli yoki sababsiz dars qoldirish akademik qarzdorlikka yoki chetlatishga olib kelishi mumkin. Sababli bo'lishi uchun esa faqat EduDocs orqali tasdiqlangan hujjatlar qabul qilinadi.";
+    }
+
+    // --- 9. EDUCATION & LEARNING ---
+    if (q.includes('o\'qish') || q.includes('fan') || q.includes('material')) {
+        return "O'quv rejalari va fan materiallari odatda HEMIS yoki o'quv platformasiga yuklanadi. EduDocs esa sizning hujjatlaringiz va yutuqlaringizni boshqaruvchi tizimdir.";
+    }
+
+    // --- 10. SYSTEM HELP ---
+    if (q.includes('yordam') || q.includes('chat') || q.includes('nima bu') || q.includes('ishlash')) {
+        return "Bu - EduDocs aqlli tizimi. Siz bu yerda davomat statusini tekshirishingiz, ma'lumotnomalar yuklashingiz, tanlovlarda qatnashishingiz va dekanat bilan onlayn bog'lanishingiz mumkin. Men esa sizning barcha savollaringizga AI sifatida javob beraman.";
+    }
+
+    // --- 11. WORLD KNOWLEDGE / GENERAL (DYNAMIC FALLBACK) ---
+    // Here we use a bit of logic to pretend we are smarter
+    const generalKeywords = ['dunyo', 'qiziq', 'sport', 'ilm', 'fan', 'texnika', 'tarix', 'til'];
+    if (generalKeywords.some(w => q.includes(w))) {
+        return `Bu mavzu juda qiziq! To'g'ri, men asosan EduDocs tizimi mutaxassisiman, lekin shuni ayta olamanki, ${q.includes('sport') ? 'sport bilan shug\'ullanish nafaqat sog\'liq, balki o\'qishdagi diqqatni ham jamlaydi.' : 'bilim olish - kelajak poydevoridir.'} Aniqroq savolingiz bo'lsa, yozing!`;
+    }
+
+    // --- 12. FALLBACK ---
+    return `To'g'risi, "${query}" mavzusida menda hozircha to'liq ma'lumot yo'q. Lekin men EduDocs tizimidagi davomatingiz, arizalar holati, yo'nalishingiz va universitet qoidalari bo'yicha deyarli hamma narsani bilaman. Kelajakda men yanada aqlli bo'laman! 🚀`;
 }

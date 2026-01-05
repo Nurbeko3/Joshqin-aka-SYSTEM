@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 </head>
 
 <body>
@@ -70,6 +72,13 @@
                 <button id="nav-student" class="nav-btn" onclick="switchTab('student')" style="display: none;">
                     <i class="fas fa-user-graduate"></i> Mening Hujjatlarim
                 </button>
+                <button id="nav-student-attendance" class="nav-btn" onclick="switchTab('student-attendance')"
+                    style="display: none;">
+                    <i class="fas fa-calendar-check"></i> Davomat statusi
+                </button>
+                <button id="nav-student-ai" class="nav-btn" onclick="switchTab('student-ai')" style="display: none;">
+                    <i class="fas fa-robot"></i> AI Yordamchi
+                </button>
                 <!-- Student Gifted Portal Sidebar with Submenu -->
                 <button id="nav-student-gifted-toggle" class="nav-btn" onclick="toggleStudentGiftedMenu()"
                     style="display: none;">
@@ -99,6 +108,9 @@
                 </button>
                 <button id="nav-settings" class="nav-btn" onclick="switchTab('settings')">
                     <i class="fas fa-cog"></i> Sozlamalar
+                </button>
+                <button id="nav-attendance" class="nav-btn" onclick="switchTab('attendance')">
+                    <i class="fas fa-calendar-check"></i> Davomat statusi
                 </button>
                 <button id="nav-schedules-toggle" class="nav-btn" onclick="toggleSchedulesMenu()">
                     <i class="fas fa-calendar-alt"></i> Jadvallar <i class="fas fa-chevron-down"
@@ -306,6 +318,8 @@
                                 style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
                                 <option value="operator">Operator 1</option>
                                 <option value="operator2">Operator 2 (Iqtidorli)</option>
+                                <option value="registrator">Registrator Ofisi</option>
+                                <option value="tutor">Tyutor</option>
                                 <option value="user">Foydalanuvchi</option>
                                 <option value="admin">Admin</option>
                             </select>
@@ -554,6 +568,27 @@
                             <!-- Messages from admin -->
                         </div>
 
+                        <!-- Davomat statusi Link for Student -->
+                        <div class="card"
+                            style="margin-top: 20px; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s;"
+                            onclick="switchTab('student-attendance')">
+                            <div
+                                style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div
+                                        style="background: linear-gradient(135deg, #10b981, #3b82f6); color: white; width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin: 0; font-size: 18px; color: #1e293b;">Davomat statusi</h4>
+                                        <p style="margin: 5px 0 0; font-size: 13px; color: #64748b;">Ma'lumotnomalar
+                                            yuklash va holatni ko'rish</p>
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-right" style="color: #94a3b8; font-size: 20px;"></i>
+                            </div>
+                        </div>
+
                         <h4 style="margin-bottom: 15px; color: #334155;"><i class="fas fa-file-invoice"></i> Mening
                             Hujjatlarim Holati</h4>
                         <div class="student-docs-grid" id="studentDocsList"
@@ -697,317 +732,722 @@
                 </div>
             </div>
 
-            <!-- Student Apply Modal -->
-            <div id="studentApplyModal" class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-paper-plane"></i> Arizani Yuborish</h3>
-                        <button class="close-modal" onclick="closeStudentApplyModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form onsubmit="submitStudentContestApplication(event)">
-                            <input type="hidden" id="applyContestId">
-                            <h4 id="applyContestTitle" style="margin-bottom: 15px; color: var(--primary-color);">Tanlov
-                                Nomi</h4>
-
-                            <div class="form-group">
-                                <label>Qisqacha Izoh (Ixtiyoriy)</label>
-                                <textarea id="applyComment" rows="3"
-                                    placeholder="Yutuqlaringiz haqida qisqacha..."></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Ariza (PDF) <span style="color:red">*</span></label>
-                                <input type="file" id="applyFileAriza" accept="application/pdf" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Pasport Nusxasi (PDF) <span style="color:red">*</span></label>
-                                <input type="file" id="applyFilePassport" accept="application/pdf" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Boshqa Hujjatlar (Sertifikat/Diplomlar - PDF)</label>
-                                <input type="file" id="applyFileOther" accept="application/pdf">
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">Yuborish</button>
-                                <button type="button" class="btn-secondary" onclick="closeStudentApplyModal()">Bekor
-                                    qilish</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- UPDATES SECTION (Admin Only) -->
-            <div id="updates-section" class="content-section">
+            <!-- STUDENT ATTENDANCE SECTION -->
+            <div id="student-attendance-section" class="content-section">
                 <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-bell"></i> Hujjatlarni Tasdiqlash (Kutilayotgan o'zgarishlar)</h3>
+                    <div class="card-header"
+                        style="background: linear-gradient(135deg, #10b981, #3b82f6); color: white;">
+                        <h3><i class="fas fa-calendar-check"></i> Davomat statusi va Ma'lumotnomalar</h3>
                     </div>
                     <div style="padding: 20px;">
-                        <div id="pendingUpdatesList" style="display: grid; gap: 20px;">
-                            <!-- Pending updates will be rendered here -->
-                            <p style="color: #64748b; text-align: center;">Hozircha yangi so'rovlar yo'q.</p>
+                        <div id="attendance-warning-box" class="warning-banner"
+                            style="display: none; margin-bottom: 20px;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>DIQQAT: CHETLATISH XAVFI!</strong>
+                                <p>Sizning jami sababli kunlaringiz 30 kundan oshdi yoki oshish arafasida.</p>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 30px;">
+                            <div class="stat-card">
+                                <div class="stat-info">
+                                    <h3>Jami sababli kunlar</h3>
+                                    <p id="totalJustifiedDays">0 kun</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-info">
+                                    <h3>Oxirgi status</h3>
+                                    <p id="lastAttendanceStatus">Normal</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card"
+                            style="border: 1px solid #e2e8f0; padding: 20px; background: #f8fafc; text-align: center;">
+                            <h4 style="margin-top: 0;"><i class="fas fa-calendar-check"></i> Yangi ma'lumotnoma yuborish
+                            </h4>
+                            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Darslarni sababli qilish
+                                uchun ma'lumotnomani shu yerda yuklashingiz mumkin.</p>
+                            <button class="btn-primary" onclick="openStudentAddCertModal()"
+                                style="padding: 12px 24px; font-size: 15px;">
+                                <i class="fas fa-plus"></i> Yangi ariza yuborish
+                            </button>
+                        </div>
+
+                        <h4 style="margin-top: 30px;"><i class="fas fa-history"></i> Mening yuborgan ma'lumotnomalarim
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sana oralig'i</th>
+                                        <th>Kunlar</th>
+                                        <th>Kirituvchi</th>
+                                        <th>Holat</th>
+                                        <th>Fayl</th>
+                                        <th>Izoh</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentCertificatesTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center; color:#888;">Hozircha ma'lumotnomalar
+                                            yo'q</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal Structure -->
-            <div id="studentModal" class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Yangi Talaba Kiritish</h3>
-                        <button class="close-modal" onclick="closeModal()">&times;</button>
+            <!-- STUDENT AI ASSISTANT SECTION -->
+            <div id="student-ai-section" class="content-section">
+                <div class="ai-dashboard">
+                    <div class="ai-sidebar">
+                        <div class="ai-assistant-card">
+                            <div class="ai-avatar pulse">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <h3 style="margin: 0; color: var(--primary-color);">EduDocs AI</h3>
+                            <p style="font-size: 13px; color: #64748b; margin-top: 5px;">Sizning shaxsiy yordamchingiz
+                            </p>
+                        </div>
+                        <div class="ai-quick-stats">
+                            <div class="ai-stat-mini">
+                                <span>Davomat:</span>
+                                <strong id="ai-stat-attendance" style="color: var(--success-color);">Yaxshi</strong>
+                            </div>
+                            <div class="ai-stat-mini">
+                                <span>Arizalar:</span>
+                                <strong id="ai-stat-apps">0 ta</strong>
+                            </div>
+                        </div>
+                        <div class="ai-suggestions">
+                            <h4>Tavsiya etilgan savollar:</h4>
+                            <button class="suggestion-btn" onclick="askAI('Mening davomatim qanday?')">Mening davomatim
+                                qanday?</button>
+                            <button class="suggestion-btn" onclick="askAI('Arizalarim holati?')">Arizalarim
+                                holati?</button>
+                            <button class="suggestion-btn" onclick="askAI('Imtihonlarim qachon?')">Imtihonlarim
+                                qachon?</button>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <form id="studentForm" onsubmit="saveStudent(event)">
-                            <input type="hidden" id="studentId">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label>F.I.O (To'liq ism)</label>
-                                    <input type="text" id="fio" placeholder="Masalan: Teshaboyev Eshmat Toshmatovich"
-                                        required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Talaba ID</label>
-                                    <input type="text" id="student_id_val" placeholder="Hozirgi ID">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Pasport (Serya va raqam)</label>
-                                    <input type="text" id="passport_serial" placeholder="AA1234567">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Qabul Qilingan Yili</label>
-                                    <input type="number" id="year" min="1990" max="2030" placeholder="2024" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Yo'nalish (Mutaxassislik)</label>
-                                    <select id="specialtySelect" required
-                                        style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                                        <option value="">Tanlang...</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Pasport (Rasm)</label>
-                                    <input type="file" id="passport" accept="image/*">
-                                    <div class="checkbox-wrapper">
-                                        <input type="checkbox" id="status_passport">
-                                        <label for="status_passport" class="checkbox-label">Hujjat qabul qilindi
-                                            (Faylsiz)</label>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Diplom (Rasm)</label>
-                                    <input type="file" id="diplom" accept="image/*">
-                                    <div class="checkbox-wrapper">
-                                        <input type="checkbox" id="status_diplom">
-                                        <label for="status_diplom" class="checkbox-label">Hujjat qabul qilindi
-                                            (Faylsiz)</label>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Diplom Ilova (Rasm)</label>
-                                    <input type="file" id="ilova" accept="image/*">
-                                    <div class="checkbox-wrapper">
-                                        <input type="checkbox" id="status_ilova">
-                                        <label for="status_ilova" class="checkbox-label">Hujjat qabul qilindi
-                                            (Faylsiz)</label>
-                                    </div>
-                                </div>
+                    <div class="ai-chat-container">
+                        <div id="ai-chat-messages" class="chat-messages">
+                            <div class="message ai">
+                                Salom! Men EduDocs AI yordamchisiman. Sizga qanday yordam bera olaman?
                             </div>
-
-                            <div class="form-group full-width">
-                                <label>Imtiyoz (Rasm)</label>
-                                <input type="file" id="imtiyoz" accept="image/*">
-                                <div class="checkbox-wrapper">
-                                    <input type="checkbox" id="status_imtiyoz">
-                                    <label for="status_imtiyoz" class="checkbox-label">Hujjat qabul qilindi
-                                        (Faylsiz)</label>
-                                </div>
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Saqlash
-                                </button>
-                                <button type="button" class="btn-secondary" onclick="closeModal()">Bekor
-                                    qilish</button>
-                            </div>
-                        </form>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="ai-user-input" placeholder="Savolingizni yozing..."
+                                onkeypress="handleAIPress(event)"
+                                style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px;">
+                            <button onclick="sendAIMessage()" class="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Contest Modal -->
-            <div id="contestModal" class="modal-overlay" style="display: none;">
-                <div class="modal" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h3 id="contestModalTitle"><i class="fas fa-star"></i> Yangi Tanlov Qo'shish</h3>
-                        <button class="close-modal" onclick="closeContestModal()">&times;</button>
+            <!-- ADMIN ATTENDANCE SECTION -->
+            <div id="attendance-section" class="content-section">
+                <!-- 1. Header with stats -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-check"></i> Davomat statusi (Admin)</h3>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-right: 40px;">
+                            <button id="btnAdminAddCert" class="btn-primary"
+                                style="background:#6366f1; padding:6px 12px; font-size:13px;"
+                                onclick="openAdminAddCertModal()">
+                                <i class="fas fa-plus"></i> Yangi kiritish
+                            </button>
+                            <div class="search-box" style="width: 200px;">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="attendanceSearchInput" onkeyup="loadAdminCertificates()"
+                                    placeholder="Qidirish...">
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <form id="contestForm" onsubmit="saveContest(event)">
-                            <input type="hidden" id="contestId">
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov nomi <span
-                                        style="color: red;">*</span>:</label>
-                                <input type="text" id="modalContestTitle" required
-                                    placeholder="Masalan: Yilning eng yaxshi iqtidorli talabasi"
-                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                            </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
-                                    tavsifi:</label>
-                                <textarea id="modalContestDesc" placeholder="Tanlov haqida batafsil ma'lumot..."
-                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); min-height: 80px;"></textarea>
-                            </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov logotipi
-                                    (ixtiyoriy):</label>
-                                <input type="file" id="modalContestLogo" accept="image/*"
-                                    style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
-                                <div id="modalLogoPreview" style="margin-top: 10px; display: none;">
-                                    <img id="modalLogoImg"
-                                        style="max-width: 200px; max-height: 100px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <div style="padding: 15px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                        <div class="stats-grid"
+                            style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                            <div class="stat-card" style="background: white; border: 1px solid #e2e8f0;">
+                                <div class="stat-info">
+                                    <h4 id="adminAttendanceStudentCount">0</h4>
+                                    <p style="font-size: 11px; color: #64748b;">Talabalar soni</p>
                                 </div>
                             </div>
-                            <div class="form-grid"
-                                style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
-                                        boshlanish sanasi:</label>
-                                    <input type="date" id="modalContestStart"
-                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza tugash
-                                        sanasi:</label>
-                                    <input type="date" id="modalContestEnd"
-                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div class="stat-card" style="background: white; border: 1px solid #e2e8f0;">
+                                <div class="stat-info">
+                                    <h4 id="adminAttendancePendingCount">0</h4>
+                                    <p style="font-size: 11px; color: #64748b;">Arizalar</p>
                                 </div>
                             </div>
-                            <div class="form-grid"
-                                style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
-                                        o'tkaziladigan kun:</label>
-                                    <input type="date" id="modalContestEvent"
-                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Manzil:</label>
-                                    <input type="text" id="modalContestAddress" placeholder="Masalan: Katta zal"
-                                        style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div class="stat-card" style="background: white; border: 1px solid #e2e8f0;">
+                                <div class="stat-info">
+                                    <h4 id="adminAttendanceTotalDays">0 kun</h4>
+                                    <p style="font-size: 11px; color: #64748b;">Tasdiqlangan</p>
                                 </div>
                             </div>
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nizomni yuklash
-                                    (PDF):</label>
-                                <input type="file" id="modalContestNizom" accept="application/pdf"
-                                    style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
-                            </div>
-
-                            <div style="margin-bottom: 15px;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <label style="font-weight: 600;">Talab qilinadigan hujjatlar:</label>
-                                    <button type="button" onclick="addRequiredDocument()" class="btn-primary"
-                                        style="padding: 4px 8px; font-size: 12px; background: #8b5cf6;">
-                                        <i class="fas fa-plus"></i> Qo'shish
-                                    </button>
-                                </div>
-                                <div id="requiredDocumentsList"
-                                    style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; min-height: 40px; background: #fbfbfb;">
-                                    <!-- Dynamic list items -->
+                            <div class="stat-card" style="background: white; border: 1px solid #e2e8f0;">
+                                <div class="stat-info">
+                                    <h4 id="adminAttendanceRiskCount">0 ta</h4>
+                                    <p style="font-size: 11px; color: #64748b;">Xavf ostida</p>
                                 </div>
                             </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Saqlash
-                                </button>
-                                <button type="button" class="btn-secondary" onclick="closeContestModal()">Bekor
-                                    qilish</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Student Contest Application Modal -->
-            <div id="studentContestModal" class="modal-overlay" style="display: none;">
-                <div class="modal" style="max-width: 700px;">
-                    <div class="modal-header">
-                        <h3 id="studentContestModalTitle"><i class="fas fa-paper-plane"></i> Arizani Jo'natish</h3>
-                        <button class="close-modal" onclick="closeStudentContestModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="studentContestInfo"
-                            style="background: #fdf4ff; border: 1px dashed #d946ef; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                            <!-- Contest info will be loaded here -->
                         </div>
 
-                        <form id="studentGiftedApplicationForm" onsubmit="submitStudentGiftedApplication(event)">
-                            <input type="hidden" id="selectedContestIdForStudent">
+                        <!-- SUB-NAVIGATION -->
+                        <div class="sub-nav-tabs"
+                            style="display: flex; gap: 5px; border-bottom: 1px solid #e2e8f0; padding-top: 5px;">
+                            <button class="sub-tab-btn active" id="sub-tab-pending"
+                                onclick="switchAttendanceSubTab('pending')">
+                                <i class="fas fa-clock"></i> Arizalar
+                            </button>
+                            <button class="sub-tab-btn" id="sub-tab-approved"
+                                onclick="switchAttendanceSubTab('approved')">
+                                <i class="fas fa-check-circle"></i> Tasdiqlanganlar
+                            </button>
+                            <button class="sub-tab-btn" id="sub-tab-rejected"
+                                onclick="switchAttendanceSubTab('rejected')">
+                                <i class="fas fa-times-circle"></i> Bekor qilinganlar
+                            </button>
+                        </div>
+                    </div>
 
-                            <div style="margin-bottom: 20px;">
-                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Yutuqlaringiz
-                                    haqida batafsil:</label>
-                                <textarea id="studentGiftedComment"
-                                    placeholder="Bu yerda yutuqlaringizni sanab o'ting..." required
-                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 100px; font-size: 14px;"></textarea>
-                            </div>
+                    <!-- Sub-Content Sections -->
+                    <div id="sub-content-pending" class="attendance-sub-content">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Talaba</th>
+                                        <th>Sana oralig'i</th>
+                                        <th>Kunlar</th>
+                                        <th>Kirituvchi</th>
+                                        <th>Yuborilgan vaqt</th>
+                                        <th>Harakatlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCertificatesPendingTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
-                                        (PDF):</label>
-                                    <input type="file" id="studentGiftedFileAriza" required accept="application/pdf"
-                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
-                                </div>
-                                <div id="studentPassportContainer">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pasport
-                                        nusxasi:</label>
-                                    <div id="studentPassportStatus" style="display: none; margin-bottom: 8px;"></div>
-                                    <input type="file" id="studentGiftedFilePassport" required
-                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
-                                </div>
-                                <div style="grid-column: span 2;">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshqa
-                                        hujjatlar (ixtiyoriy):</label>
-                                    <input type="file" id="studentGiftedFileOther"
-                                        style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
-                                </div>
-                            </div>
+                    <div id="sub-content-approved" class="attendance-sub-content" style="display:none;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Talaba</th>
+                                        <th>Sana oralig'i</th>
+                                        <th>Kunlar</th>
+                                        <th>Kirituvchi</th>
+                                        <th>Tasdiqlangan vaqt</th>
+                                        <th>Harakatlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCertificatesApprovedTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
 
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary"
-                                    style="background: linear-gradient(90deg, #6366f1, #a855f7);">
-                                    <i class="fas fa-paper-plane"></i> Arizani Jo'natish
-                                </button>
-                                <button type="button" class="btn-secondary" onclick="closeStudentContestModal()">Bekor
-                                    qilish</button>
-                            </div>
-                        </form>
+                    <div id="sub-content-rejected" class="attendance-sub-content" style="display:none;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Talaba</th>
+                                        <th>Sana oralig'i</th>
+                                        <th>Kunlar</th>
+                                        <th>Kirituvchi</th>
+                                        <th>Sababi</th>
+                                        <th>Harakatlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCertificatesRejectedTableBody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </main>
+    </div>
+
+    <!-- Student Apply Modal -->
+    <div id="studentApplyModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-paper-plane"></i> Arizani Yuborish</h3>
+                <button class="close-modal" onclick="closeStudentApplyModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form onsubmit="submitStudentContestApplication(event)">
+                    <input type="hidden" id="applyContestId">
+                    <h4 id="applyContestTitle" style="margin-bottom: 15px; color: var(--primary-color);">Tanlov
+                        Nomi</h4>
+
+                    <div class="form-group">
+                        <label>Qisqacha Izoh (Ixtiyoriy)</label>
+                        <textarea id="applyComment" rows="3" placeholder="Yutuqlaringiz haqida qisqacha..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ariza (PDF) <span style="color:red">*</span></label>
+                        <input type="file" id="applyFileAriza" accept="application/pdf" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pasport Nusxasi (PDF) <span style="color:red">*</span></label>
+                        <input type="file" id="applyFilePassport" accept="application/pdf" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Boshqa Hujjatlar (Sertifikat/Diplomlar - PDF)</label>
+                        <input type="file" id="applyFileOther" accept="application/pdf">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Yuborish</button>
+                        <button type="button" class="btn-secondary" onclick="closeStudentApplyModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- UPDATES SECTION (Admin Only) -->
+    <div id="updates-section" class="content-section">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-bell"></i> Hujjatlarni Tasdiqlash (Kutilayotgan o'zgarishlar)</h3>
+            </div>
+            <div style="padding: 20px;">
+                <div id="pendingUpdatesList" style="display: grid; gap: 20px;">
+                    <!-- Pending updates will be rendered here -->
+                    <p style="color: #64748b; text-align: center;">Hozircha yangi so'rovlar yo'q.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="studentModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Yangi Talaba Kiritish</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="studentForm" onsubmit="saveStudent(event)">
+                    <input type="hidden" id="studentId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>F.I.O (To'liq ism)</label>
+                            <input type="text" id="fio" placeholder="Masalan: Teshaboyev Eshmat Toshmatovich" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Talaba ID</label>
+                            <input type="text" id="student_id_val" placeholder="Hozirgi ID">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Pasport (Serya va raqam)</label>
+                            <input type="text" id="passport_serial" placeholder="AA1234567">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Qabul Qilingan Yili</label>
+                            <input type="number" id="year" min="1990" max="2030" placeholder="2024" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Yo'nalish (Mutaxassislik)</label>
+                            <select id="specialtySelect" required
+                                style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                <option value="">Tanlang...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Pasport (Rasm)</label>
+                            <input type="file" id="passport" accept="image/*">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="status_passport">
+                                <label for="status_passport" class="checkbox-label">Hujjat qabul qilindi
+                                    (Faylsiz)</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Diplom (Rasm)</label>
+                            <input type="file" id="diplom" accept="image/*">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="status_diplom">
+                                <label for="status_diplom" class="checkbox-label">Hujjat qabul qilindi
+                                    (Faylsiz)</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Diplom Ilova (Rasm)</label>
+                            <input type="file" id="ilova" accept="image/*">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="status_ilova">
+                                <label for="status_ilova" class="checkbox-label">Hujjat qabul qilindi
+                                    (Faylsiz)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Imtiyoz (Rasm)</label>
+                        <input type="file" id="imtiyoz" accept="image/*">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="status_imtiyoz">
+                            <label for="status_imtiyoz" class="checkbox-label">Hujjat qabul qilindi
+                                (Faylsiz)</label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Saqlash
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="closeModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contest Modal -->
+    <div id="contestModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="contestModalTitle"><i class="fas fa-star"></i> Yangi Tanlov Qo'shish</h3>
+                <button class="close-modal" onclick="closeContestModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="contestForm" onsubmit="saveContest(event)">
+                    <input type="hidden" id="contestId">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov nomi <span
+                                style="color: red;">*</span>:</label>
+                        <input type="text" id="modalContestTitle" required
+                            placeholder="Masalan: Yilning eng yaxshi iqtidorli talabasi"
+                            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
+                            tavsifi:</label>
+                        <textarea id="modalContestDesc" placeholder="Tanlov haqida batafsil ma'lumot..."
+                            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); min-height: 80px;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov logotipi
+                            (ixtiyoriy):</label>
+                        <input type="file" id="modalContestLogo" accept="image/*"
+                            style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                        <div id="modalLogoPreview" style="margin-top: 10px; display: none;">
+                            <img id="modalLogoImg"
+                                style="max-width: 200px; max-height: 100px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        </div>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
+                                boshlanish sanasi:</label>
+                            <input type="date" id="modalContestStart"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza tugash
+                                sanasi:</label>
+                            <input type="date" id="modalContestEnd"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        </div>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tanlov
+                                o'tkaziladigan kun:</label>
+                            <input type="date" id="modalContestEvent"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Manzil:</label>
+                            <input type="text" id="modalContestAddress" placeholder="Masalan: Katta zal"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nizomni yuklash
+                            (PDF):</label>
+                        <input type="file" id="modalContestNizom" accept="application/pdf"
+                            style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-weight: 600;">Talab qilinadigan hujjatlar:</label>
+                            <button type="button" onclick="addRequiredDocument()" class="btn-primary"
+                                style="padding: 4px 8px; font-size: 12px; background: #8b5cf6;">
+                                <i class="fas fa-plus"></i> Qo'shish
+                            </button>
+                        </div>
+                        <div id="requiredDocumentsList"
+                            style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; min-height: 40px; background: #fbfbfb;">
+                            <!-- Dynamic list items -->
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Saqlash
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="closeContestModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Contest Application Modal -->
+    <div id="studentContestModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="studentContestModalTitle"><i class="fas fa-paper-plane"></i> Arizani Jo'natish</h3>
+                <button class="close-modal" onclick="closeStudentContestModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="studentContestInfo"
+                    style="background: #fdf4ff; border: 1px dashed #d946ef; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <!-- Contest info will be loaded here -->
+                </div>
+
+                <form id="studentGiftedApplicationForm" onsubmit="submitStudentGiftedApplication(event)">
+                    <input type="hidden" id="selectedContestIdForStudent">
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Yutuqlaringiz
+                            haqida batafsil:</label>
+                        <textarea id="studentGiftedComment" placeholder="Bu yerda yutuqlaringizni sanab o'ting..."
+                            required
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 100px; font-size: 14px;"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ariza
+                                (PDF):</label>
+                            <input type="file" id="studentGiftedFileAriza" required accept="application/pdf"
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                        </div>
+                        <div id="studentPassportContainer">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Pasport
+                                nusxasi:</label>
+                            <div id="studentPassportStatus" style="display: none; margin-bottom: 8px;"></div>
+                            <input type="file" id="studentGiftedFilePassport" required
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshqa
+                                hujjatlar (ixtiyoriy):</label>
+                            <input type="file" id="studentGiftedFileOther"
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"
+                            style="background: linear-gradient(90deg, #6366f1, #a855f7);">
+                            <i class="fas fa-paper-plane"></i> Arizani Jo'natish
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="closeStudentContestModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Certificate Modal (Admin) -->
+    <div id="editCertModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Ma'lumotnomani Tahrirlash</h3>
+                <button class="close-modal" onclick="closeEditCertModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editCertificateForm" onsubmit="saveEditedCert(event)">
+                    <input type="hidden" id="editCertId">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshlanish
+                                sanasi:</label>
+                            <input type="date" id="editCertStartDate" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tugash
+                                sanasi:</label>
+                            <input type="date" id="editCertEndDate" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 600;">Rad etish sababi
+                            (Agar rad qilingan bo'lsa):</label>
+                        <textarea id="editCertRejectionReason" placeholder="Sababini kiriting..."
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 80px; font-size: 14px;"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Izoh:</label>
+                        <textarea id="editCertComment" placeholder="Izoh qoldiring..."
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 80px; font-size: 14px;"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Saqlash
+                        </button>
+                        <button type="button" class="btn-secondary" onclick="closeEditCertModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Admin Add Certificate Modal -->
+    <div id="adminAddCertModal" class="modal-overlay">
+        <div class="modal" style="width: 90%; max-width: 1200px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus"></i> Yangi Ma'lumotnoma Kiritish</h3>
+                <button class="close-modal" onclick="closeAdminAddCertModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="adminAddCertForm" onsubmit="saveAdminNewCert(event)">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Talabalarni
+                            tanlang:</label>
+
+                        <div id="adminSelectedStudentsTags" class="tags-container">
+                            <span style="color: #94a3b8; font-size: 13px;">Hali hech kim tanlanmagan</span>
+                        </div>
+
+                        <div style="position: relative;">
+                            <input type="text" id="adminAddCertStudentSearch"
+                                placeholder="F.I.O yoki ID bo'yicha qidiring..." oninput="filterAdminAddCertStudents()"
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 5px;">
+
+                            <div id="adminStudentSearchResults" class="search-results-list" style="display: none;">
+                                <!-- Search results will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshlanish
+                                sanasi:</label>
+                            <input type="date" id="adminAddCertStart" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tugash sanasi:</label>
+                            <input type="date" id="adminAddCertEnd" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Xujjat biriktirish (Max
+                            5):</label>
+                        <input type="file" id="adminAddCertFiles" multiple accept="image/*,application/pdf"
+                            style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Izoh:</label>
+                        <textarea id="adminAddCertComment" placeholder="Admin izohi..."
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 80px; font-size: 14px;"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Saqlash</button>
+                        <button type="button" class="btn-secondary" onclick="closeAdminAddCertModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Student Add Certificate Modal -->
+    <div id="studentAddCertModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-paper-plane"></i> Yangi ariza yuborish</h3>
+                <button class="close-modal" onclick="closeStudentAddCertModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="studentAddCertForm" onsubmit="saveStudentNewCert(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Boshlanish
+                                sanasi:</label>
+                            <input type="date" id="studentAddCertStart" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tugash sanasi:</label>
+                            <input type="date" id="studentAddCertEnd" required
+                                style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Xujjat biriktirish (Max
+                            5):</label>
+                        <input type="file" id="studentAddCertFiles" multiple accept="image/*,application/pdf" required
+                            style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: white;">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Izoh:</label>
+                        <textarea id="studentAddCertComment" placeholder="Sababini qisqacha yozing..."
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); min-height: 80px; font-size: 14px;"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Yuborish</button>
+                        <button type="button" class="btn-secondary" onclick="closeStudentAddCertModal()">Bekor
+                            qilish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </main>
     </div>
     <script src="contests.js"></script>
     <script src="student-contests.js"></script>
+    <!-- Global Loading Overlay -->
+    <div id="globalLoadingOverlay" class="loading-overlay">
+        <div id="globalSpinner" class="spinner"></div>
+        <div id="globalSuccessIcon" class="success-check"><i class="fas fa-check-circle"></i></div>
+        <p id="globalLoadingText">Yuklanmoqda...</p>
+    </div>
+
     <script src="app.js"></script>
 </body>
 
